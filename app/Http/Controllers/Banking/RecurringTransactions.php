@@ -17,6 +17,7 @@ use App\Models\Setting\Tax;
 use App\Traits\Currencies;
 use App\Traits\DateTime;
 use App\Traits\Transactions as TransactionsTrait;
+use App\Utilities\Date;
 
 class RecurringTransactions extends Controller
 {
@@ -30,7 +31,7 @@ class RecurringTransactions extends Controller
         // Add CRUD permission check
         $this->middleware('permission:create-banking-transactions')->only('create', 'store', 'duplicate', 'import');
         $this->middleware('permission:read-banking-transactions')->only('index', 'show', 'edit', 'export');
-        $this->middleware('permission:update-banking-transactions')->only('update', 'enable', 'disable');
+        $this->middleware('permission:update-banking-transactions')->only('update', 'enable', 'disable', 'end');
         $this->middleware('permission:delete-banking-transactions')->only('destroy');
     }
 
@@ -99,7 +100,9 @@ class RecurringTransactions extends Controller
      */
     public function store(Request $request)
     {
-        $response = $this->ajaxDispatch(new CreateTransaction($request->merge(['paid_at' => $request->get('recurring_started_at')])));
+        $request->merge(['paid_at' => $request->get('recurring_started_at')]);
+
+        $response = $this->ajaxDispatch(new CreateTransaction($request));
 
         if ($response['success']) {
             $response['redirect'] = route('recurring-transactions.show', $response['data']->id);
@@ -203,7 +206,9 @@ class RecurringTransactions extends Controller
      */
     public function update(Transaction $recurring_transaction, Request $request)
     {
-        $response = $this->ajaxDispatch(new UpdateTransaction($recurring_transaction, $request->merge(['paid_at' => $request->get('recurring_started_at')])));
+        $request->merge(['paid_at' => $request->get('recurring_started_at')]);
+
+        $response = $this->ajaxDispatch(new UpdateTransaction($recurring_transaction, $request));
 
         if ($response['success']) {
             $response['redirect'] = route('recurring-transactions.show', $recurring_transaction->id);

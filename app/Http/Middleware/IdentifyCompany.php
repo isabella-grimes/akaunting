@@ -3,13 +3,14 @@
 namespace App\Http\Middleware;
 
 use App\Traits\Companies;
+use App\Traits\Modules;
 use App\Traits\Users;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
 
 class IdentifyCompany
 {
-    use Companies, Users;
+    use Companies, Modules, Users;
 
     /**
      * Handle an incoming request.
@@ -28,7 +29,11 @@ class IdentifyCompany
         $company_id = $this->getCompanyId();
 
         if (empty($company_id)) {
-            abort(500, 'Missing company');
+            if (request_is_mcp($this->request) || $this->request->bearerToken()) {
+                throw new AuthenticationException('Unauthenticated.', $guards);
+            }
+
+            abort(400, 'Missing company');
         }
 
         // Check if user can access company
@@ -40,10 +45,13 @@ class IdentifyCompany
         $company = company($company_id);
 
         if (empty($company)) {
-            abort(500, 'Company not found');
+            abort(404, 'Company not found');
         }
 
         $company->makeCurrent();
+
+        // Load company-specific modules (event listeners, providers)
+        $this->registerModules();
 
         // Fix file/folder paths
         config(['filesystems.disks.' . config('filesystems.default') . '.url' => url('/' . $company_id)  . '/uploads']);

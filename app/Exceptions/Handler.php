@@ -61,6 +61,10 @@ class Handler extends ExceptionHandler
             if (config('logging.default') == 'bugsnag') {
                 call_user_func(config('bugsnag.before_send'), $e);
             }
+
+            if (config('app.error_tracker') === 'sentry') {
+                \Sentry\Laravel\Integration::captureUnhandledException($e);
+            }
         });
     }
 
@@ -116,9 +120,9 @@ class Handler extends ExceptionHandler
      */
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        // Store the current url in the session
-        if ($request->url() !== config('app.url')) {
-            session(['url.intended' => $request->url()]);
+        // Store the current url in the session (fullUrl includes query string)
+        if ($request->fullUrl() !== config('app.url')) {
+            session(['url.intended' => $request->fullUrl()]);
         }
 
         return $request->expectsJson()

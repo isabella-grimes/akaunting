@@ -129,6 +129,9 @@ export default {
             quantity_name_input: false,
 
             tax_summary: '',
+
+            categoriesBasedTypes: null,
+            selected_type: true,
         }
     },
 
@@ -228,7 +231,7 @@ export default {
                     <div class="swiper-button-prev bg-body text-white flex items-center justify-center left-0">
                         <span class="material-icons text-purple text-4xl">chevron_left</span>
                     </div>
-                    `; 
+                    `;
 
                 item.querySelector('[data-tabs-swiper]').innerHTML = html;
                 slides_view = Number(item.getAttribute('data-swiper')) != 0 ? Number(item.getAttribute('data-swiper'))  : slides_view;
@@ -299,6 +302,64 @@ export default {
         onHandleFileUpload(key, event) {
             this.form[key] = '';
             this.form[key] = event.target.files[0];
+        },
+
+        // Enable the parent category field and load its options based on the selected type
+        updateParentCategories(event) {
+            if (event === '') {
+                return;
+            }
+
+            // The category page sets a global variable, the modal sends it within the form
+            let category_data = (typeof categoryData !== 'undefined') ? categoryData : (this.form ? this.form.parent_categories : null);
+
+            if (typeof category_data === 'string') {
+                try {
+                    category_data = JSON.parse(category_data);
+                } catch (e) {
+                    category_data = null;
+                }
+            }
+
+            if (! category_data || typeof category_data[event] === 'undefined') {
+                this.categoriesBasedTypes = [];
+
+                return;
+            }
+
+            if (this.form.parent_id) {
+                this.form.parent_id = null;
+            }
+
+            this.selected_type = false;
+
+            this.categoriesBasedTypes = category_data[event];
+        },
+
+        isCategoryCodeFieldVisible() {
+            if (!this.form || !this.form.type) {
+                return false;
+            }
+
+            let type_codes = (typeof typeCodes !== 'undefined') ? typeCodes : this.form.type_codes;
+
+            if (!type_codes) {
+                return false;
+            }
+
+            if (typeof type_codes === 'string') {
+                try {
+                    type_codes = JSON.parse(type_codes);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (typeof type_codes[this.form.type] === 'undefined') {
+                return true;
+            }
+
+            return !Boolean(type_codes[this.form.type]);
         },
 
         // Bulk Action Select all
@@ -468,6 +529,16 @@ export default {
                     }
                 }, this);
             }
+        },
+
+        onChangeContact(contact) {
+            if (!contact || !contact.category_id || !this.form) {
+                return;
+            }
+
+            this.form.category_id = contact.category_id;
+
+            this.$forceUpdate();
         },
 
         // Pages limit change
@@ -845,7 +916,7 @@ export default {
             this.onChangeCurrency(currency_code);
 
             this.$forceUpdate();
-        },
+    },
 
         async onAddPayment(url) {
             let payment = {

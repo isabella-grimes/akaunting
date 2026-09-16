@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Akaunting\Module\Module;
 use App\Events\Common\BulkActionsAdding;
+use App\Models\Setting\Category;
 use App\Traits\Modules;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
@@ -57,7 +58,7 @@ trait ViewComponents
         switch ($trans_type) {
             case 'trans':
                 foreach ($translations as $trans) {
-                    if (trans($trans) !== $trans) {
+                    if (is_string(trans($trans)) && trans($trans) !== $trans) {
                         return $trans;
                     }
                 }
@@ -65,7 +66,7 @@ trait ViewComponents
                 break;
             case 'trans_choice':
                 foreach ($translations as $trans_choice) {
-                    if (trans_choice($trans_choice, 1) !== $trans_choice) {
+                    if (is_string(trans($trans_choice)) && trans_choice($trans_choice, 1) !== $trans_choice) {
                         return $trans_choice;
                     }
                 }
@@ -188,19 +189,19 @@ trait ViewComponents
             case 'bill':
             case 'expense':
             case 'purchase':
-                $category_type = 'expense';
+                $category_type = Category::EXPENSE_TYPE;
                 break;
             case 'item':
-                $category_type = 'item';
+                $category_type = Category::ITEM_TYPE;
                 break;
             case 'other':
-                $category_type = 'other';
+                $category_type = Category::OTHER_TYPE;
                 break;
             case 'transfer':
                 $category_type = 'transfer';
                 break;
             default:
-                $category_type = 'income';
+                $category_type = Category::INCOME_TYPE;
                 break;
         }
 

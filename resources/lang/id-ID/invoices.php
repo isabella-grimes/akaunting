@@ -43,6 +43,7 @@ return [
     'get_paid'              => 'Telah dibayar',
     'accept_payments'       => 'Menerima pembayaran online',
     'payments_received'     => 'Pembayaran diterima',
+    'over_payment'          => 'Jumlah yang Anda masukkan melebihi total: :amount',
 
     'form_description' => [
         'billing'           => 'Detail penagihan muncul di faktur Anda. Tanggal Faktur digunakan di dasbor dan laporan. Pilih tanggal yang Anda harapkan untuk dibayar sebagai Tanggal Jatuh Tempo.',
@@ -50,7 +51,7 @@ return [
 
     'messages' => [
         'email_required'    => 'Tidak ada alamat email untuk pelanggan ini!',
-        'totals_required'   => 'Total faktur diperlukan, mohon edit :type dan coba simpan kembali.',
+        'totals_required'   => 'Total faktur diperlukan. Mohon edit :type dan coba simpan kembali.',
 
         'draft'             => 'Faktur ini merupakan <b>DRAFT</b> dan akan terlihat pada grafik ketika sudah dibayarkan',
 
@@ -66,7 +67,7 @@ return [
             ],
         ],
 
-        'name_or_description_required' => 'Faktur Anda harus menunjukkan setidaknya <b>:name</b> atau <b>:decription</b>',
+        'name_or_description_required' => 'Faktur Anda harus menunjukkan setidaknya <b>:name</b> atau <b>:description</b>.',
     ],
 
     'share' => [

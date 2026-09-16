@@ -28,7 +28,7 @@ trait Transactions
         return in_array($type, $this->getExpenseTypes());
     }
 
-    public function isNotExpense()
+    public function isNotExpense(): bool
     {
         return ! $this->isExpense();
     }
@@ -55,6 +55,26 @@ trait Transactions
     public function isNotTransferTransaction(): bool
     {
         return ! $this->isTransferTransaction();
+    }
+
+    public function isJournalTransaction(): bool
+    {
+        if (! module_is_enabled('double-entry')) {
+            return false;
+        }
+
+        $transaction = $this instanceof Transaction ? $this : ($this->transaction ?? $this->model ?? null);
+
+        if (! $transaction instanceof Transaction) {
+            return false;
+        }
+
+        return ! empty($transaction->journal_ledger);
+    }
+
+    public function isNotJournalTransaction(): bool
+    {
+        return ! $this->isJournalTransaction();
     }
 
     public function isSplitTransaction(): bool
@@ -95,7 +115,11 @@ trait Transactions
     {
         $types = (string) setting('transaction.type.' . $index);
 
-        return ($return == 'array') ? explode(',', $types) : $types;
+        if ($return == 'array') {
+            return $types === '' ? [] : explode(',', $types);
+        }
+
+        return $types;
     }
 
     public function addIncomeType(string $new_type): void
@@ -246,12 +270,12 @@ trait Transactions
         return Str::replace('-split', '', $transfer_type);
     }
 
-    public function getNextTransactionNumber($type = 'income', $suffix = ''): string
+    public function getNextTransactionNumber(string $type = 'income', string $suffix = ''): string
     {
         return app(TransactionNumber::class)->getNextNumber($type, $suffix, null);
     }
 
-    public function increaseNextTransactionNumber($type = 'income', $suffix = ''): void
+    public function increaseNextTransactionNumber(string $type = 'income', string $suffix = ''): void
     {
         app(TransactionNumber::class)->increaseNextNumber($type, $suffix, null);
     }

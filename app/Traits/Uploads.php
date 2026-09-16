@@ -4,18 +4,21 @@ namespace App\Traits;
 
 use App\Models\Common\Media as MediaModel;
 use App\Utilities\Date;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use MediaUploader;
 
 trait Uploads
 {
-    public function getMedia($file, $folder = 'settings', $company_id = null)
+    public function getMedia($file, $folder = 'settings', $company_id = null, $allowed_mimes = null)
     {
         $path = '';
 
         if (! $file || ! $file->isValid()) {
             return $path;
         }
+
+        $this->validateUploadedFile($file, $allowed_mimes);
 
         $path = $this->getMediaFolder($folder, $company_id);
 
@@ -33,13 +36,15 @@ trait Uploads
                             ->upload();
     }
 
-    public function importMedia($file, $folder = 'settings', $company_id = null, $disk = null)
+    public function importMedia($file, $folder = 'settings', $company_id = null, $disk = null, $allowed_mimes = null)
     {
         $path = '';
 
         if (! $disk) {
             $disk = config('mediable.default_disk');
         }
+
+        $this->validateImportedFilePath($file, $allowed_mimes);
 
         $path = $this->getMediaFolder($folder, $company_id) . '/' . basename($file);
 
@@ -173,5 +178,57 @@ trait Uploads
         }
 
         return (string)$file->guessExtension();
+    }
+
+    protected function validateUploadedFile($file, $allowed_mimes = null): void
+    {
+        $mimes = implode(',', $this->getAllowedMimes($allowed_mimes));
+        $maxSize = (int) config('filesystems.max_size') * 1024;
+
+        $validator = validator(
+            ['file' => $file],
+            ['file' => 'file|mimes:' . $mimes . '|max:' . $maxSize]
+        );
+
+        if ($validator->fails()) {
+            throw ValidationException::withMessages([
+                'file' => $validator->errors()->first('file'),
+            ]);
+        }
+    }
+
+    protected function validateImportedFilePath($file, $allowed_mimes = null): void
+    {
+        $extension = Str::lower(pathinfo((string) $file, PATHINFO_EXTENSION));
+
+        $allowed = $this->getAllowedMimes($allowed_mimes);
+
+        if (empty($extension) || ! in_array($extension, $allowed, true)) {
+            throw ValidationException::withMessages([
+                'file' => trans('validation.mimes', ['values' => implode(', ', $allowed)]),
+            ]);
+        }
+    }
+
+    /**
+     * Get the file types allowed for the upload.
+     *
+     * The caller knows what it accepts, so it may pass its own file types,
+     * otherwise the global whitelist is used.
+     */
+    protected function getAllowedMimes($allowed_mimes = null): array
+    {
+        $mimes = ! empty($allowed_mimes) ? $allowed_mimes : config('filesystems.mimes');
+
+        if (is_string($mimes)) {
+            $mimes = explode(',', $mimes);
+        }
+
+        return collect((array) $mimes)
+                    ->map(fn ($mime) => Str::lower(trim((string) $mime)))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
     }
 }

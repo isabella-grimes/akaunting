@@ -23,6 +23,22 @@ class Invoices extends Controller
     public string $type = Document::INVOICE_TYPE;
 
     /**
+     * Instantiate a new controller instance.
+     *
+     * Security: explicitly gate document state-change methods behind
+     * update-sales-invoices permission. These methods are not in the
+     * canonical CRUD lists of assignPermissionsToController() and would
+     * otherwise run without any permission check.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->middleware('permission:read-sales-invoices')->only('printInvoice', 'pdfInvoice');
+        $this->middleware('permission:update-sales-invoices')->only('markSent', 'markCancelled', 'restoreInvoice', 'emailInvoice');
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return Response
@@ -31,7 +47,30 @@ class Invoices extends Controller
     {
         $this->setActiveTabForDocuments();
 
-        $invoices = Document::invoice()->with('contact', 'items', 'items.taxes', 'item_taxes', 'last_history', 'transactions', 'totals', 'histories', 'media')->collect(['document_number'=> 'desc']);
+        if (! request()->filled('sort')) {
+            request()->merge([
+                'sort' => 'document_number',
+                'direction' => 'desc',
+            ]);
+        }
+
+        $invoices = Document::invoice()->with([
+            'contact' => function ($query) {
+                $query->withCount([
+                    'contact_persons as contact_persons_with_email_count' => function ($query) {
+                        $query->whereNotNull('email');
+                    },
+                ]);
+            },
+            'items',
+            'items.taxes',
+            'item_taxes',
+            'last_history',
+            'transactions',
+            'totals',
+            'histories',
+            'media',
+        ])->collect(['document_number' => 'desc']);
 
         $total_invoices = Document::invoice()->count();
 

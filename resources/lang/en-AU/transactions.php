@@ -12,12 +12,13 @@ return [
     'recurring_expense'     => 'Recurring Expense',
     'included_tax'          => 'Included tax amount',
     'connected'             => 'Connected',
+    'connect_message'       => 'Taxes for this :type were not calculated during the connection process. Taxes can not be connected.',
 
     'form_description' => [
         'general'           => 'Here you can enter the general information of transaction such as date, amount, account, description, etc.',
         'assign_income'     => 'Select a category and customer to make your reports more detailed.',
         'assign_expense'    => 'Select a category and vendor to make your reports more detailed.',
-        'other'             => 'Enter a reference to keep the transaction linked to your records.',
+        'other'             => 'Enter a number and reference to keep the transaction linked to your records.',
     ],
 
     'slider' => [
@@ -27,7 +28,7 @@ return [
         'schedule'          => 'Repeat every :interval :frequency since :date',
         'children'          => ':count transactions were created automatically',
         'connect'           => 'This transaction is connected to :count transactions',
-        'transfer_headline' => 'From :from_account to :to_account',
+        'transfer_headline' => '<div> <span class="font-bold"> From: </span> :from_account </div> <div> <span class="font-bold"> to: </span> :to_account </div>',
         'transfer_desc'     => 'Transfer created on :date.',
     ],
 
@@ -46,5 +47,12 @@ return [
     'sticky' => [
         'description'       => 'You are previewing how your customer will see the web version of your payment.',
     ],
+
+    'messages' => [
+        'update_document_transaction' => 'You can update this transaction. You should go to the document and edit it there.',
+        'create_document_transaction_error' => 'This endpoint cannot be added to a document. Use {{akaunting_url}}/documents/{{akaunting_document_id}}/transactions',
+        'update_document_transaction_error' => 'This endpoint cannot be updated to a document. Use {{akaunting_url}}/documents/{{akaunting_document_id}}/transactions/{akaunting_transaction_id}',
+        'delete_document_transaction_error' => 'This endpoint cannot be deleted to a document. Use {{akaunting_url}}/documents/{{akaunting_document_id}}/transactions/{akaunting_transaction_id}',
+    ]
 
 ];

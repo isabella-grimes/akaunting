@@ -10,7 +10,7 @@ use App\Events\Report\RowsShowing;
 class AddExpenseCategories extends Listener
 {
     protected $classes = [
-        'App\Reports\ExpenseSummary',
+        \App\Reports\ExpenseSummary::class,
     ];
 
     /**
@@ -26,8 +26,8 @@ class AddExpenseCategories extends Listener
         }
 
         // send true for add limit on search and filter..
-        $event->class->filters['categories'] = $this->getExpenseCategories(true);
-        $event->class->filters['routes']['categories'] = ['categories.index', 'search=type:expense enabled:1'];
+        $event->class->filters['categories'] = $this->getExpenseCategories(limit: true);
+        $event->class->filters['routes']['categories'] = ['categories.index', 'search=type:' . $this->getExpenseCategoryTypes('string') . ' enabled:1'];
         $event->class->filters['multiple']['categories'] = true;
     }
 

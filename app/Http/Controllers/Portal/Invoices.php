@@ -10,6 +10,7 @@ use App\Traits\DateTime;
 use App\Traits\Documents;
 use App\Traits\Uploads;
 use App\Utilities\Modules;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 
 class Invoices extends Controller
@@ -62,7 +63,17 @@ class Invoices extends Controller
 
         event(new \App\Events\Document\DocumentViewed($invoice));
 
-        return view('portal.invoices.show', compact('invoice', 'payment_methods'));
+        $text_document_transaction = 'documents.transaction';
+
+        if (
+            request()->isSigned($invoice->company_id)
+            || request()->isPreview($invoice->company_id)
+            || request()->isPortal($invoice->company_id)
+        ) {
+            $text_document_transaction = 'documents.portal_transaction';
+        }
+
+        return view('portal.invoices.show', compact('invoice', 'payment_methods', 'text_document_transaction'));
     }
 
     /**
@@ -134,12 +145,42 @@ class Invoices extends Controller
         foreach ($payment_methods as $payment_method_key => $payment_method_value) {
             $codes = explode('.', $payment_method_key);
 
+            $route = 'signed.' . $codes[0] . '.invoices.show';
+
+            // The app may have been uninstalled while its method is still cached,
+            // so drop it instead of failing the whole page on a missing route.
+            if (! Route::has($route)) {
+                unset($payment_methods[$payment_method_key]);
+
+                // A missing route while the app is still installed is not an
+                // uninstall, it means its routes did not load. Do not hide that.
+                if (module($codes[0])) {
+                    logger()->warning('Portal: payment method dropped because its route is missing while the app is installed.', [
+                        'company_id' => $invoice->company_id,
+                        'payment_method' => $payment_method_key,
+                        'route' => $route,
+                    ]);
+                }
+
+                continue;
+            }
+
             if (!isset($payment_actions[$codes[0]])) {
-                $payment_actions[$codes[0]] = URL::signedRoute('signed.' . $codes[0] . '.invoices.show', [$invoice->id]);
+                $payment_actions[$codes[0]] = URL::signedRoute($route, [$invoice->id]);
             }
         }
 
-        return view('portal.invoices.preview', compact('invoice', 'payment_methods', 'payment_actions'));
+        $text_document_transaction = 'documents.transaction';
+
+        if (
+            request()->isSigned($invoice->company_id)
+            || request()->isPreview($invoice->company_id)
+            || request()->isPortal($invoice->company_id)
+        ) {
+            $text_document_transaction = 'documents.portal_transaction';
+        }
+
+        return view('portal.invoices.preview', compact('invoice', 'payment_methods', 'payment_actions', 'text_document_transaction'));
     }
 
     public function signed(Document $invoice)
@@ -155,8 +196,28 @@ class Invoices extends Controller
         foreach ($payment_methods as $payment_method_key => $payment_method_value) {
             $codes = explode('.', $payment_method_key);
 
+            $route = 'signed.' . $codes[0] . '.invoices.show';
+
+            // The app may have been uninstalled while its method is still cached,
+            // so drop it instead of failing the whole page on a missing route.
+            if (! Route::has($route)) {
+                unset($payment_methods[$payment_method_key]);
+
+                // A missing route while the app is still installed is not an
+                // uninstall, it means its routes did not load. Do not hide that.
+                if (module($codes[0])) {
+                    logger()->warning('Portal: payment method dropped because its route is missing while the app is installed.', [
+                        'company_id' => $invoice->company_id,
+                        'payment_method' => $payment_method_key,
+                        'route' => $route,
+                    ]);
+                }
+
+                continue;
+            }
+
             if (!isset($payment_actions[$codes[0]])) {
-                $payment_actions[$codes[0]] = URL::signedRoute('signed.' . $codes[0] . '.invoices.show', [$invoice->id]);
+                $payment_actions[$codes[0]] = URL::signedRoute($route, [$invoice->id]);
             }
         }
 
@@ -168,6 +229,16 @@ class Invoices extends Controller
             event(new \App\Events\Document\DocumentViewed($invoice));
         }
 
-        return view('portal.invoices.signed', compact('invoice', 'payment_methods', 'payment_actions', 'print_action', 'pdf_action'));
+        $text_document_transaction = 'documents.transaction';
+
+        if (
+            request()->isSigned($invoice->company_id)
+            || request()->isPreview($invoice->company_id)
+            || request()->isPortal($invoice->company_id)
+        ) {
+            $text_document_transaction = 'documents.portal_transaction';
+        }
+
+        return view('portal.invoices.signed', compact('invoice', 'payment_methods', 'payment_actions', 'print_action', 'pdf_action', 'text_document_transaction'));
     }
 }

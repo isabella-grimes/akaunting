@@ -3,6 +3,7 @@
 namespace App\Abstracts;
 
 use App\Abstracts\Http\FormRequest;
+use App\Events\Import\RowPreparing;
 use App\Traits\Import as ImportHelper;
 use App\Traits\Sources;
 use App\Utilities\Date;
@@ -46,6 +47,10 @@ abstract class Import implements HasLocalePreference, ShouldQueue, SkipsEmptyRow
 
     public function map($row): array
     {
+        // Uploaded files may contain invalid UTF-8 (e.g. latin-1 bytes), which breaks
+        // the queue payload encoding and the insert. Sanitise the values up front.
+        $row = $this->sanitizeRowEncoding($row);
+
         $row['company_id'] = company_id();
 
         // created_by is equal to the owner id. Therefore, the value in export is owner email.
@@ -73,11 +78,31 @@ abstract class Import implements HasLocalePreference, ShouldQueue, SkipsEmptyRow
                 $row[$date_field] = is_numeric($row[$date_field]) 
                                     ? Date::parse(ExcelDate::excelToDateTimeObject($row[$date_field]))
                                             ->format('Y-m-d H:i:s')
-                                    : Date::parse($row[$date_field])
+                                    : Date::parseWithFallbackLocales($row[$date_field], null, [$this->preferredLocale()])
                                             ->format('Y-m-d H:i:s');
             } catch (InvalidFormatException | \Exception $e) {
                 Log::info($e->getMessage());
             }
+        }
+
+        $event = new RowPreparing($this, $row);
+
+        event($event);
+
+        return $event->row;
+    }
+
+    /**
+     * Convert any string value that is not valid UTF-8 so it can be encoded safely.
+     */
+    public function sanitizeRowEncoding(array $row): array
+    {
+        foreach ($row as $key => $value) {
+            if (! is_string($value) || mb_check_encoding($value, 'UTF-8')) {
+                continue;
+            }
+
+            $row[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
         }
 
         return $row;

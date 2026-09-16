@@ -17,13 +17,26 @@ use App\Models\Setting\Currency;
 class Accounts extends Controller
 {
     /**
+     * Instantiate a new controller instance.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->middleware('permission:create-banking-transactions')->only('createIncome', 'createExpense');
+        $this->middleware('permission:create-banking-transfers')->only('createTransfer');
+        $this->middleware('permission:read-banking-accounts')->only('seePerformance');
+        $this->middleware('permission:read-settings-currencies')->only('currency');
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return Response
      */
     public function index()
     {
-        $accounts = Account::with('income_transactions', 'expense_transactions')->collect();
+        $accounts = Account::withSum('income_transactions', 'amount')->withSum('expense_transactions', 'amount')->collect();
 
         return $this->response('banking.accounts.index', compact('accounts'));
     }
@@ -292,16 +305,16 @@ class Accounts extends Controller
         // Get currency object
         $currency = Currency::where('code', $currency_code)->first();
 
-        $account->currency_name = $currency->name;
-        $account->currency_code = $currency_code;
-        $account->currency_rate = $currency->rate;
-
-        $account->thousands_separator = $currency->thousands_separator;
-        $account->decimal_mark = $currency->decimal_mark;
-        $account->precision = (int) $currency->precision;
-        $account->symbol_first = $currency->symbol_first;
-        $account->symbol = $currency->symbol;
-
-        return response()->json($account);
+        return response()->json([
+            'id' => $account->id,
+            'currency_name' => $currency->name,
+            'currency_code' => $currency_code,
+            'currency_rate' => $currency->rate,
+            'thousands_separator' => $currency->thousands_separator,
+            'decimal_mark' => $currency->decimal_mark,
+            'precision' => (int) $currency->precision,
+            'symbol_first' => $currency->symbol_first,
+            'symbol' => $currency->symbol,
+        ]);
     }
 }

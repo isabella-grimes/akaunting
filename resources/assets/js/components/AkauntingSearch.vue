@@ -1,7 +1,7 @@
 <template>
     <div
         :id="'search-field-' + _uid"
-        class="lg:h-12 my-5 searh-field flex flex-col lg:flex-row border-b transition-all js-search"
+        class="lg:h-12 my-5 search-field flex flex-col lg:flex-row border-b transition-all js-search"
         :class="input_focus ? 'border-gray-500' : 'border-gray-300'"
     >
         <div class="w-full lg:w-auto flex overflow-x-scroll large-overflow-unset" :class="filtered.length ? 'h-12 lg:h-auto' : ''">
@@ -24,10 +24,10 @@
 
                 <span v-if="filter.value" class="flex items-center bg-purple-lighter text-black border-0 mt-3 px-3 py-4 text-sm cursor-pointer el-tag el-tag--small el-tag-value">
                     <span v-if="Array.isArray(filter.value)">
-                        <span v-for="(multiple_filter, index) in filter.value" v-if="index < 3" class="-mr-0.5">
+                        <span v-for="(multiple_filter, index) in filter.value" v-if="index < 3" class="ltr:-mr-0.5 rtl:-ml-0.5">
                             {{ (index == 0) ? multiple_filter.value : ', ' + multiple_filter.value }}
                         </span>
-                        <span v-if="filter.value.length > 3" class="-mr-0.5">
+                        <span v-if="filter.value.length > 3" class="ltr:-mr-0.5 rtl:-ml-0.5">
                            &nbsp; {{ ' + ' + (filter.value.length - 3) + ' ' + moreText }}
                         </span>
                     </span>
@@ -98,14 +98,14 @@
                 </li>
 
                 <li ref="" v-if="search" class="p-2 hover:bg-lilac-900 dropdown-item">
-                    <button type="button" class="text-left" @click="onInputConfirm">{{ searchText }}</button>
+                    <button type="button" class="ltr:text-left rtl:text-right" @click="onInputConfirm">{{ searchText }}</button>
                 </li>
             </div>
 
             <div :id="'search-field-operator-' + _uid" class="absolute top-12 ltr:left-8 rtl:right-8 py-2 bg-white rounded-md border border-gray-200 shadow-xl z-20 list-none dropdown-menu operator" :class="[{'show': visible.operator}]">
                 <li v-if="equal" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap">
                     <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onOperatorSelected('=')">
-                        <span class="material-icons text-2xl transform pointer-events-none">drag_handle</span>
+                        <span class="material-icons text-2xl transform pointer-events-none mx-auto">drag_handle</span>
                         <span class="text-gray hidden pointer-events-none">{{ operatorIsText }}
                         </span>
                     </button>
@@ -120,7 +120,7 @@
 
                 <li v-if="range" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap">
                     <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onOperatorSelected('><')">
-                        <span class="material-icons text-2xl transform rotate-90 pointer-events-none">height</span>
+                        <span class="material-icons text-2xl transform rotate-90 pointer-events-none mx-auto">height</span>
                         <span class="text-gray hidden pointer-events-none">{{ operatorIsNotText }}</span>
                     </button>
                 </li>
@@ -130,7 +130,7 @@
                 <li ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap" v-for="(value) in filteredValues" :data-value="value.key">
                     <div v-if="! multiple" class="w-full flex items-center h-9 leading-9 whitespace-nowrap">
                         <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onValueSelected(value.key)">
-                            <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 pointer-events-none">subdirectory_arrow_right</i>
+                            <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 rtl:rotate-180 pointer-events-none">subdirectory_arrow_right</i>
                             {{ value.value }}
                         </button>
                     </div>
@@ -140,7 +140,7 @@
                             <input type="checkbox" name="multiple-filter-values" :id="'search-field-value-' + _uid + '-multiple-' + value.key"  :value="value.key" v-model="multiple_values" data-type="single" class="rounded-sm text-purple border-gray-300 cursor-pointer disabled:bg-gray-200 focus:outline-none focus:ring-transparent mt-0.5">
 
                             <label :for="'search-field-value-' + _uid + '-multiple-' + value.key" class="w-full h-full flex items-center rounded-md px-2">
-                                <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 pointer-events-none">subdirectory_arrow_right</i>
+                                <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 rtl:rotate-180 pointer-events-none">subdirectory_arrow_right</i>
                                 {{ value.value }}
                             </label>
                         </div>
@@ -290,6 +290,7 @@ export default {
             selected_operator: [],
             selected_values: [],
             values: [],
+            useRemoteSearchValues: false,
             multiple_values: [],
             current_operator: '',
             current_value: null,
@@ -432,6 +433,7 @@ export default {
                     }, this);
 
                     this.option_values[value] = this.values;
+                    this.useRemoteSearchValues = true;
                 })
                 .catch(error => {
 
@@ -467,12 +469,9 @@ export default {
             search_string[path] = {};
 
             this.filtered.forEach(function (filter, index) {
-                if (list) {
-                    args += sign + 'search=';
-                    sign = '&';
-                }
-
-                if (! args) {
+                // One search parameter for all filters, not one per filter: a
+                // repeated query key leaves PHP with only the last of them.
+                if (args.indexOf('search=') === -1) {
                     args += sign + 'search=';
                     sign = '&';
                 }
@@ -487,7 +486,7 @@ export default {
 
                     date_range_path += sign + 'start_date=' + dates[0];
                     date_range_path += '&end_date=' + (dates[1] ? dates[1] : dates[0]);
-                    
+
                     return;
                 }
 
@@ -652,6 +651,7 @@ export default {
                 }, this);
 
                 this.option_values[value] = this.values;
+                this.useRemoteSearchValues = false;
             })
             .catch(error => {
 
@@ -916,10 +916,13 @@ export default {
         }
 
         if (this.value) {
-            this.value = this.value.replace(/\s+[a-zA-Z\w]+[<=]+/g, '-to-');
-            this.value = this.value.replace('>=', ':');
+            // Normalise a local copy: mutating the prop triggers a Vue warning
+            // and would be discarded on a parent re-render anyway.
+            let value = this.value
+                .replace(/\s+[a-zA-Z\w]+[<=]+/g, '-to-')
+                .replace('>=', ':');
 
-            let search_string = this.value.replace('not ', '').replace(' not ', ' ');
+            let search_string = value.replace('not ', '').replace(' not ', ' ');
 
             search_string = search_string.split(' ');
 
@@ -936,11 +939,14 @@ export default {
                     let operator = '=';
                     let value = '';
                     let value_assigned = false;
+                    let matched = false;
 
                     this.filter_list.forEach(function (_filter, i) {
                         let filter_values = this.convertOption(_filter.values);
 
                         if (_filter.key == filter[0]) {
+                            matched = true;
+
                             option = _filter.value;
                             operator = _filter.operator;
 
@@ -1008,6 +1014,15 @@ export default {
                             }
                         }
                     }, this);
+
+                    if (! matched) {
+                        // Not a known filter key, so keep the token as a plain
+                        // search term instead of pushing an empty chip and
+                        // dropping the value altogether.
+                        search_values.push(string.replace(/[\"]+/g, ''));
+
+                        return;
+                    }
 
                     this.filtered.push({
                         option: option,
@@ -1223,6 +1238,13 @@ export default {
                 return 0;
             });
 
+            // Remote endpoint already filtered by search query - skip local re-filter.
+            if (this.useRemoteSearchValues) {
+                this.useRemoteSearchValues = false;
+
+                return this.values;
+            }
+
             return this.values.filter(value => {
                 return value.value.toLowerCase().includes(this.search.toLowerCase());
             });
@@ -1243,75 +1265,86 @@ export default {
 </script>
 
 <style>
-    .searh-field .tags-group:hover > span {
+    .search-field .tags-group:hover > span {
         background:#cbd4de;
         background-color: #cbd4de;
         border-color: #cbd4de;
     }
 
-    .searh-field .el-tag.el-tag--primary .el-tag__close.el-icon-close {
+    .search-field .el-tag.el-tag--primary .el-tag__close.el-icon-close {
         color: #8898aa;
         margin-top: -3px;
     }
 
-    .searh-field .el-tag.el-tag--primary .el-tag__close.el-icon-close:hover {
+    .search-field .el-tag.el-tag--primary .el-tag__close.el-icon-close:hover {
         background-color: transparent;
     }
 
-    html[dir='ltr'] .searh-field .el-tag-option {
-        border-radius: 0.50rem 0 0 0.50rem;
-        //margin-left: 10px;
+    html[dir='rtl'] .search-field .el-tag .el-tag__close.el-icon-close {
+        left: auto;
+        right: 4px;
     }
 
-    html[dir='rtl'] .searh-field .el-tag-option {
+    html[dir='ltr'] .search-field .el-tag-option {
+        border-radius: 0.50rem 0 0 0.50rem;
+        /* margin-left: 10px; */
+    }
+
+    html[dir='rtl'] .search-field .el-tag-option {
         border-radius: 0 0.5rem 0.5rem 0;
     }
 
-    .searh-field .el-tag-operator {
+    .search-field .el-tag-operator {
         border-radius: 0;
         margin-left: -1px;
         margin-right: -1px;
     }
 
-    html[dir='ltr'] .searh-field .el-tag-value {
+    html[dir='ltr'] .search-field .el-tag-value {
         border-radius: 0 0.50rem 0.50rem 0;
         margin-right: 10px;
     }
 
-    html[dir='rtl'] .searh-field .el-tag-value {
+    html[dir='rtl'] .search-field .el-tag-value {
         border-radius: 0.5rem 0 0 0.5rem;
         margin-left: 10px;
     }
 
-    html[dir='rtl'] .searh-field .el-tag-operator {
+    html[dir='rtl'] .search-field .el-tag-operator {
         border-radius: 0;
     }
 
-    .searh-field .el-select.input-new-tag {
+    .search-field .el-select.input-new-tag {
         width: 100%;
     }
 
-    .searh-field .btn-helptext {
-        margin-left: auto;
+    .search-field .btn-helptext {
+        margin-inline-start: auto;
         color: var(--gray);
     }
 
-    .searh-field .btn:not(:disabled):not(.disabled):active:focus,
-    .searh-field .btn:not(:disabled):not(.disabled).active:focus {
+    .search-field .btn:not(:disabled):not(.disabled):active:focus,
+    .search-field .btn:not(:disabled):not(.disabled).active:focus {
         -webkit-box-shadow: none !important;
         box-shadow: none !important;
     }
 
-    .searh-field .form-control.datepicker.flatpickr-input {
+    .search-field .form-control.datepicker.flatpickr-input {
         padding: inherit !important;
     }
 
-    .searh-field .dropdown-menu.operator {
+    .search-field .dropdown-menu.operator {
         min-width: 50px !important;
     }
 
-    .searh-field .dropdown-menu.operator .btn i:not(:last-child), .btn svg:not(:last-child) {
+    html[dir='ltr'] .search-field .dropdown-menu.operator .btn i:not(:last-child),
+    html[dir='ltr'] .btn svg:not(:last-child) {
         margin-right: inherit !important;
+    }
+
+    html[dir='rtl'] .search-field .dropdown-menu.operator .btn i:not(:last-child),
+    html[dir='rtl'] .btn svg:not(:last-child) {
+        margin-left: inherit !important;
     }
 
     .dropdown-menu {

@@ -31,6 +31,24 @@ class Transactions extends Controller
     use Currencies, DateTime, TransactionsTrait;
 
     /**
+     * Instantiate a new controller instance.
+     *
+     * Security: explicitly gate document-output and matching methods behind
+     * the appropriate permission. These methods are not in the canonical CRUD
+     * lists of assignPermissionsToController() and would otherwise run
+     * without any permission check (CWE-862), allowing any authenticated user
+     * with only "read-admin-panel" to view, download or email every
+     * transaction and to change how a transaction is matched to a document.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->middleware('permission:read-banking-transactions')->only('printTransaction', 'pdfTransaction');
+        $this->middleware('permission:update-banking-transactions')->only('emailTransaction', 'connect', 'dial');
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return Response
@@ -39,7 +57,15 @@ class Transactions extends Controller
     {
         $this->setActiveTabForTransactions();
 
-        $transactions = Transaction::with('account', 'category', 'contact', 'taxes')->collect(['paid_at'=> 'desc']);
+        $transactions = Transaction::with(
+            'account',
+            'category',
+            'contact',
+            'taxes',
+            'document',
+            'document.items',
+            'document.last_history'
+        )->collect(['paid_at'=> 'desc']);
 
         $total_transactions = Transaction::count();
 

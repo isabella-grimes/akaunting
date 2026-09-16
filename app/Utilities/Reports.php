@@ -63,7 +63,9 @@ class Reports
             return false;
         }
 
-        if (! empty($model) && ($model->alias != 'core') && (new static)->moduleIsDisabled($model->alias)) {
+        // Use the static cache from isModuleEnabled() instead of creating
+        // a new instance and re-reading module JSON from disk each time.
+        if (! empty($model) && ($model->alias != 'core') && ! static::isModuleEnabled($model->class)) {
             return false;
         }
 
@@ -123,11 +125,13 @@ class Reports
             return true;
         }
 
-        if (module_is_enabled($alias)) {
-            return true;
+        static $cache = [];
+
+        if (! array_key_exists($alias, $cache)) {
+            $cache[$alias] = module_is_enabled($alias);
         }
 
-        return false;
+        return $cache[$alias];
     }
 
     public static function isModuleDisabled($class)

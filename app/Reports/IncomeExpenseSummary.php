@@ -48,8 +48,14 @@ class IncomeExpenseSummary extends Report
 
     public function setData()
     {
-        $income_transactions = $this->applyFilters(Transaction::with('recurring')->income()->isNotTransfer(), ['date_field' => 'paid_at']);
-        $expense_transactions = $this->applyFilters(Transaction::with('recurring')->expense()->isNotTransfer(), ['date_field' => 'paid_at']);
+        $income_transactions = $this->applyFilters(
+            model: Transaction::with('recurring')->income()->isNotTransfer(),
+            args: ['date_field' => 'paid_at', 'model_type' => 'income'],
+        );
+        $expense_transactions = $this->applyFilters(
+            model: Transaction::with('recurring')->expense()->isNotTransfer(),
+            args: ['date_field' => 'paid_at', 'model_type' => 'expense'],
+        );
 
         switch ($this->getBasis()) {
             case 'cash':
@@ -64,9 +70,12 @@ class IncomeExpenseSummary extends Report
                 break;
             default:
                 // Invoices
-                $invoices = $this->applyFilters(Document::invoice()->with('recurring', 'transactions', 'items')->accrued(), ['date_field' => 'issued_at'])->get();
+                $invoices = $this->applyFilters(
+                    model: Document::invoice()->with('recurring', 'transactions', 'items')->accrued(),
+                    args: ['date_field' => 'issued_at', 'model_type' => 'invoice'],
+                )->get();
                 Recurring::reflect($invoices, 'issued_at');
-                $this->setTotals($invoices, 'issued_at', false, 'income');
+                $this->setTotals($this->flattenDocumentItems($invoices), 'issued_at', false, 'income');
 
                 // Incomes
                 $incomes = $income_transactions->isNotDocument()->get();
@@ -74,9 +83,12 @@ class IncomeExpenseSummary extends Report
                 $this->setTotals($incomes, 'paid_at', false, 'income');
 
                 // Bills
-                $bills = $this->applyFilters(Document::bill()->with('recurring', 'transactions', 'items')->accrued(), ['date_field' => 'issued_at'])->get();
+                $bills = $this->applyFilters(
+                    model: Document::bill()->with('recurring', 'transactions', 'items')->accrued(),
+                    args: ['date_field' => 'issued_at', 'model_type' => 'bill'],
+                )->get();
                 Recurring::reflect($bills, 'issued_at');
-                $this->setTotals($bills, 'issued_at', false, 'expense');
+                $this->setTotals($this->flattenDocumentItems($bills), 'issued_at', false, 'expense');
 
                 // Expenses
                 $expenses = $expense_transactions->isNotDocument()->get();

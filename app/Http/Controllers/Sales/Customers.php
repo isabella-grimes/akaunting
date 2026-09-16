@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Abstracts\Http\Controller;
-use App\Exports\Sales\Customers as Export;
+use App\Exports\Sales\Customers\Customers as Export;
 use App\Http\Requests\Common\Contact as Request;
 use App\Http\Requests\Common\Import as ImportRequest;
-use App\Imports\Sales\Customers as Import;
+use App\Imports\Sales\Customers\Customers as Import;
 use App\Jobs\Common\CreateContact;
 use App\Jobs\Common\DeleteContact;
 use App\Jobs\Common\DuplicateContact;
@@ -22,6 +22,17 @@ class Customers extends Controller
      * @var string
      */
     public $type = Contact::CUSTOMER_TYPE;
+
+    /**
+     * Instantiate a new controller instance.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->middleware('permission:create-sales-invoices')->only('createInvoice');
+        $this->middleware('permission:create-banking-transactions')->only('createIncome');
+    }
 
     /**
      * Display a listing of the resource.

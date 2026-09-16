@@ -325,7 +325,22 @@ class Transaction extends Model
         $this->number       = $this->getNextTransactionNumber($this->type, $suffix);
         $this->document_id  = null;
         $this->split_id     = null;
+
         unset($this->reconciled);
+    }
+
+    /**
+     * Get the payment method title.
+     *
+     * @return string
+     */
+    public function getPaymentMethodTitleAttribute()
+    {
+        $payment_method = $this->payment_method;
+
+        $payment_methods = \App\Utilities\Modules::getPaymentMethods('all');
+
+        return $payment_methods[$payment_method] ?? $payment_method;
     }
 
     /**
@@ -411,13 +426,23 @@ class Transaction extends Model
      */
     public function getTypeTitleAttribute($value)
     {
+        if ($value) {
+            return $value;
+        }
+
+        $translation = config('type.transaction.' . $this->type . '.translation.transactions');
+
+        if (! empty($translation)) {
+            return trans_choice($translation, 1);
+        }
+
         $type = $this->getRealTypeOfRecurringTransaction($this->type);
         $type = $this->getRealTypeOfTransferTransaction($type);
         $type = $this->getRealTypeOfSplitTransaction($type);
 
         $type = str_replace('-', '_', $type);
 
-        return $value ?? trans_choice('general.' . Str::plural($type), 1);
+        return trans_choice('general.' . Str::plural($type), 1);
     }
 
     /**
@@ -458,7 +483,7 @@ class Transaction extends Model
     public function getAmountBeforeTaxAttribute()
     {
         if (empty($this->amount)) {
-            return false;
+            return 0;
         }
 
         $precision = currency($this->currency_code)->getPrecision();
@@ -557,7 +582,7 @@ class Transaction extends Model
         } catch (\Exception $e) {}
 
         try {
-            if (! $this->reconciled && $this->isNotTransferTransaction()) {
+            if (! $this->reconciled && empty($this->document_id) && $this->isNotTransferTransaction() && $this->isNotJournalTransaction()) {
                 $actions[] = [
                     'title' => trans('general.edit'),
                     'icon' => 'edit',
@@ -573,6 +598,7 @@ class Transaction extends Model
         try {
             if (empty($this->document_id) 
                 && $this->isNotTransferTransaction()
+                && $this->isNotJournalTransaction()
                 && $this->isNotSplitTransaction()
             ) {
                 $actions[] = [
@@ -593,6 +619,7 @@ class Transaction extends Model
                 && empty($this->document_id)
                 && empty($this->recurring)
                 && $this->isNotTransferTransaction()
+                && $this->isNotJournalTransaction()
             ) {
                 $connect = [
                     'type' => 'button',
@@ -640,7 +667,7 @@ class Transaction extends Model
         } catch (\Exception $e) {}
 
         if ($prefix != 'recurring-transactions') {
-            if ($this->isNotTransferTransaction()) {
+            if ($this->isNotTransferTransaction() && $this->isNotJournalTransaction()) {
                 $actions[] = [
                     'type' => 'divider',
                 ];

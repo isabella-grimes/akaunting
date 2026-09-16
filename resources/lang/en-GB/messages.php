@@ -4,7 +4,7 @@ return [
 
     'success' => [
         'added'             => ':type added!',
-        'created'			=> ':type created!',
+        'created'            => ':type created!',
         'updated'           => ':type updated!',
         'deleted'           => ':type deleted!',
         'duplicated'        => ':type duplicated!',
@@ -29,6 +29,7 @@ return [
         'no_file'           => 'Error: No file selected!',
         'last_category'     => 'Error: Can not delete the last <b>:type</b> category!',
         'transfer_category' => 'Error: Can not delete the transfer <b>:type</b> category!',
+        'transfer_transaction' => 'Error: You are not allowed to change/delete the transaction because it belongs to a transfer!',
         'change_type'       => 'Error: Can not change the type because it has :text related!',
         'invalid_apikey'    => 'Error: The API Key entered is invalid!',
         'empty_apikey'      => 'Error: You have not entered your API Key! <a href=":url" class="font-bold underline underline-offset-4">Click here</a> to enter your API Key.',
@@ -47,6 +48,7 @@ return [
         'payment_cancel'    => 'Warning: You have cancelled your recent :method payment!',
         'missing_transfer'  => 'Warning: The transfer related to this transaction is missing. You should consider deleting this transaction.',
         'connect_tax'       => 'Warning: This :type has a tax amount. Taxes added to the :type can not be connected, so the tax will be added to the total and calculated accordingly.',
+        'contact_change'    => 'Warning: You are not allowed to change the contact on a :type that has already been sent, received, or paid!',
     ],
 
 ];

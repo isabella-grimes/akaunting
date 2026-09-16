@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Banking;
 
+use App\Http\Resources\Auth\Owner;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class Account extends JsonResource
@@ -22,17 +23,17 @@ class Account extends JsonResource
             'number' => $this->number,
             'currency_code' => $this->currency_code,
             'opening_balance' => $this->opening_balance,
-            'opening_balance_formatted' => money($this->opening_balance, $this->currency_code)->format(),
+            'opening_balance_formatted' => money((float) ($this->opening_balance ?? 0), $this->currency_code)->format(),
             'current_balance' => $this->balance,
-            'current_balance_formatted' => money($this->balance, $this->currency_code)->format(),
+            'current_balance_formatted' => money((float) ($this->balance ?? 0), $this->currency_code)->format(),
             'bank_name' => $this->bank_name,
             'bank_phone' => $this->bank_phone,
             'bank_address' => $this->bank_address,
             'enabled' => $this->enabled,
-            'created_from' => $this->created_from,
-            'created_by' => $this->created_by,
             'created_at' => $this->created_at ? $this->created_at->toIso8601String() : '',
             'updated_at' => $this->updated_at ? $this->updated_at->toIso8601String() : '',
+            'created_from' => $this->created_from,
+            'owner' => Owner::from($this->owner),
         ];
     }
 }

@@ -13,7 +13,10 @@ return [
     'discount_summary'              => 'Samenvatting korting',
     'gross_profit'                  => 'Bruto winst',
     'net_profit'                    => 'Nettowinst',
-    'total_expenses'                => 'Totale uitgaven',
+    'net_profit_loss'               => 'Nettowinst (verlies)',
+    'total_income'                  => 'Totale inkomsten',
+    'total_direct_cost'             => 'Totale verkoopkosten',
+    'total_expense'                 => 'Totale uitgaven',
     'net'                           => 'NET',
     'income_expense'                => 'Inkomsten & Uitgaven',
     'pin'                           => 'Pin uw rapport',
@@ -35,6 +38,8 @@ return [
     'pin_text' => [
         'unpin_report'              => 'Uw rapport losmaken',
         'pin_report'                => 'Pin uw rapport',
-    ]
+    ],
+
+    'percentage_of_income'          => 'Toon % van inkomsten',
 
 ];

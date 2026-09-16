@@ -8,17 +8,17 @@ return [
 
     'major'     =>  '3',
 
-    'minor'     =>  '1',
+    'minor'     =>  '2',
 
-    'patch'     =>  '21',
+    'patch'     =>  '3',
 
     'build'     =>  '',
 
     'status'    =>  'Stable',
 
-    'date'      =>  '13-December-2025',
+    'date'      =>  '30-August-2026',
 
-    'time'      =>  '22:00',
+    'time'      =>  '18:00',
 
     'zone'      =>  'GMT +3',
 

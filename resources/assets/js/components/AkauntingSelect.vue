@@ -20,7 +20,7 @@
             :readonly="readonly"
             :collapse-tags="collapse"
             :loading="loading"
-            class="forms"
+            :class="['forms', { 'with-color-prefix': selectedOptionColor, 'with-icon-prefix': icon }]"
         >
             <div v-if="loading" class="el-select-dropdown__wrap" slot="empty">
                 <p class="el-select-dropdown__empty pt-2 pb-0 loading">
@@ -62,8 +62,13 @@
             </div>
 
             <template slot="prefix">
-                <span class="el-input__suffix-inner el-select-icon">
-                    <i :class="'select-icon-position el-input__icon fa fa-' + icon"></i>
+                <span class="aka-select-prefix">
+                    <span
+                        v-if="selectedOptionColor"
+                        class="aka-select-prefix-dot"
+                        :style="{ backgroundColor: selectedOptionColor }"
+                    ></span>
+                    <i v-if="icon" :class="'select-icon-position el-input__icon fa fa-' + icon"></i>
                 </span>
             </template>
 
@@ -75,13 +80,13 @@
                 :style="optionStyle"
             >
                 <slot name="option" :option="option">
-                    <span class="float-left" :style="'padding-left: ' + (10 * option.level).toString() + 'px;'">
-                        <i v-if="option.level != 0" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2">subdirectory_arrow_right</i>{{ option.value }}
+                    <span class="ltr:float-left rtl:float-right" :style="'padding-inline-start: ' + (10 * option.level).toString() + 'px;'">
+                        <i v-if="option.level != 0" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 rtl:rotate-180">subdirectory_arrow_right</i>{{ option.value }}
                     </span>
                 </slot>
 
-                <span 
-                    class="new-badge absolute right-2 bg-green text-white px-2 py-1 rounded-md text-xs"
+                <span
+                    class="new-badge absolute ltr:right-2 rtl:left-2 bg-green text-white px-2 py-1 rounded-md text-xs"
                     v-if="new_options[option.key] || (option.mark_new)"
                 >
                     {{ addNew.new_text }}
@@ -102,13 +107,13 @@
                     :style="optionStyle"
                 >
                     <slot name="option" :option="option">
-                        <span class="float-left" :style="'padding-left: ' + (10 * option.level).toString() + 'px;'">
-                            <i v-if="option.level != 0" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2">subdirectory_arrow_right</i>{{ option.value }}
+                        <span class="ltr:float-left rtl:float-right" :style="'padding-inline-start: ' + (10 * option.level).toString() + 'px;'">
+                            <i v-if="option.level != 0" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 rtl:rotate-180">subdirectory_arrow_right</i>{{ option.value }}
                         </span>
                     </slot>
 
                     <span
-                        class="new-badge absolute right-2 bg-green text-white px-2 py-1 rounded-md text-xs"
+                        class="new-badge absolute ltr:right-2 rtl:left-2 bg-green text-white px-2 py-1 rounded-md text-xs"
                         v-if="new_options[option.key] || (option.mark_new)"
                     >
                         {{ addNew.new_text }}
@@ -116,10 +121,10 @@
                 </el-option>
             </el-option-group>
 
-            <el-option 
+            <el-option
                 v-if="!loading && addNew.status && options.length != 0 && sortedOptions.length > 0"
                 class="el-select-dropdown__item  el-select__footer select-add-new bg-purple sticky bottom-0"
-                disabled 
+                disabled
                 value=""
             >
                 <div class="w-full flex items-center" @click="onAddItem">
@@ -133,7 +138,7 @@
 
         <component v-bind:is="add_new_html" @submit="onSubmit" @cancel="onCancel"></component>
 
-        <span slot="infoBlock" class="absolute right-8 top-3 bg-green text-white px-2 py-1 rounded-md text-xs" v-if="new_options[selected] || (sorted_options.length && sorted_options[sorted_options.length - 1].mark_new && sorted_options[sorted_options.length - 1].key == selected)">{{ addNew.new_text }}</span>
+        <span slot="infoBlock" class="absolute ltr:right-8 rtl:left-8 top-3 bg-green text-white px-2 py-1 rounded-md text-xs" v-if="new_options[selected] || (sorted_options.length && sorted_options[sorted_options.length - 1].mark_new && sorted_options[sorted_options.length - 1].key == selected)">{{ addNew.new_text }}</span>
 
         <select :name="name" :id="name + '-' + _uid" class="hidden">
             <option v-for="option in sortedOptions" :key="option.key" :value="option.key">{{ option.value }}</option>
@@ -371,6 +376,7 @@ export default {
             new_options: {},
             loading: false,
             remote: false,
+            isDropdownVisible: false,
         }
     },
 
@@ -402,6 +408,28 @@ export default {
 
             return this.sorted_options;
         },
+
+        selectedOptionColor() {
+            const selectedOption = this.getSelectedOptionData();
+
+            if (!selectedOption || typeof selectedOption !== 'object') {
+                return '';
+            }
+
+            if (selectedOption.color_hex_code) {
+                return selectedOption.color_hex_code;
+            }
+
+            if (selectedOption.color_hex) {
+                return selectedOption.color_hex;
+            }
+
+            if (selectedOption.color && selectedOption.color.toString().startsWith('#')) {
+                return selectedOption.color;
+            }
+
+            return '';
+        },
     },
 
     mounted() {
@@ -432,6 +460,165 @@ export default {
     },
 
     methods: {
+        getSelectedOptionData() {
+            const selectedKey = this.multiple
+                ? (Array.isArray(this.selected) && this.selected.length ? this.selected[0] : null)
+                : this.selected;
+
+            if (selectedKey === null || selectedKey === undefined || selectedKey === '') {
+                return null;
+            }
+
+            const foundOption = this.findOptionByKey(selectedKey);
+
+            if (!foundOption) {
+                return null;
+            }
+
+            return foundOption.option ? foundOption.option : foundOption;
+        },
+
+        findOptionByKey(optionKey) {
+            const normalizedKey = optionKey.toString();
+
+            const foundInSortedOptions = this.findOptionInList(this.sorted_options, normalizedKey);
+
+            if (foundInSortedOptions) {
+                return foundInSortedOptions;
+            }
+
+            const foundInFullOptions = this.findOptionInList(this.full_options, normalizedKey);
+
+            if (foundInFullOptions) {
+                return foundInFullOptions;
+            }
+
+            return null;
+        },
+
+        findOptionInList(list, optionKey) {
+            if (!Array.isArray(list) || optionKey === null || optionKey === undefined) {
+                return null;
+            }
+
+            const normalizedKey = optionKey.toString();
+
+            if (this.group) {
+                for (const groupOption of list) {
+                    if (!Array.isArray(groupOption.value)) {
+                        continue;
+                    }
+
+                    const found = groupOption.value.find(option => option.key == normalizedKey);
+
+                    if (found) {
+                        return found;
+                    }
+                }
+
+                return null;
+            }
+
+            const found = list.find(option => option.key == normalizedKey);
+
+            return found ? found : null;
+        },
+
+        // Option label field control
+        getOptionLabel(option) {
+            return option[this.option_field.value] ? option[this.option_field.value] : (option.title) ? option.title : (option.display_name) ? option.display_name : option.name;
+        },
+
+        matchesOptionQuery(sorted_option, query) {
+            let search = (query) ? query.toString().toLowerCase() : '';
+
+            if (! search) {
+                return true;
+            }
+
+            let option = sorted_option.option ? sorted_option.option : {};
+
+            let values = [sorted_option.value, option.name, option.code, option.title, option.display_name];
+
+            return values.some(value => value && value.toString().toLowerCase().indexOf(search) > -1);
+        },
+
+        // Filter the options without breaking the group structure
+        filterOptionList(list, query) {
+            if (! Array.isArray(list)) {
+                return [];
+            }
+
+            if (! this.group) {
+                return list.filter(option => this.matchesOptionQuery(option, query));
+            }
+
+            let filtered_options = [];
+
+            list.forEach(function (group_option) {
+                if (! Array.isArray(group_option.value)) {
+                    return;
+                }
+
+                let options = group_option.value.filter(option => this.matchesOptionQuery(option, query));
+
+                if (! options.length) {
+                    return;
+                }
+
+                filtered_options.push({
+                    key: group_option.key,
+                    value: options,
+                });
+            }, this);
+
+            return filtered_options;
+        },
+
+        // Add the option to sorted_options with the group structure of the select
+        pushSortedOption(sorted_option, option) {
+            if (! this.group) {
+                this.sorted_options.push(sorted_option);
+
+                return;
+            }
+
+            let group_key = this.getOptionGroupKey(option);
+            let group_option = this.sorted_options.find(group => group.key == group_key);
+
+            if (group_option && Array.isArray(group_option.value)) {
+                group_option.value.push(sorted_option);
+
+                return;
+            }
+
+            this.sorted_options.push({
+                key: group_key,
+                value: [sorted_option],
+            });
+        },
+
+        getOptionGroupKey(option) {
+            if (option && option.group) {
+                return option.group.toString();
+            }
+
+            // Group data is not set, so the option is added to the group of its own type
+            let group_option = this.sorted_options.find(function (group) {
+                if (! Array.isArray(group.value)) {
+                    return false;
+                }
+
+                return group.value.some(item => item.option && option && item.option.type == option.type);
+            });
+
+            if (group_option) {
+                return group_option.key.toString();
+            }
+
+            return this.sorted_options.length ? this.sorted_options[0].key.toString() : '';
+        },
+
         sortBy(option) {
             return (firstEl, secondEl) => {
                 let first_element = firstEl[option].toUpperCase(); // ignore upper and lowercase
@@ -579,7 +766,7 @@ export default {
         },
 
         setFullOptions() {
-            // Reset full_options 
+            // Reset full_options
             this.full_options = [];
 
             let created_options = (this.dynamicOptions) ? this.dynamicOptions : this.fullOptions;
@@ -763,6 +950,8 @@ export default {
         visibleChange(event) {
             this.$emit('visible-change', event);
 
+            this.isDropdownVisible = event;
+
             this.dynamicPlaceholder = this.placeholder;
 
             if (event && this.searchText) {
@@ -770,31 +959,40 @@ export default {
             }
 
             if (this.searchable) {
-                let selected = this.selected;
-                this.sorted_options = [];
-
                 this.setSortedOptions();
 
-                let current_sorted_option = false;
-
-                for (const [key, value] of Object.entries(this.full_options)) {
-                    current_sorted_option = Array.isArray(this.sorted_options) && this.sorted_options.find((option) => option.key == selected);
-
-                    if (selected == value.key && ! current_sorted_option) {
-                        let sorted_option_key = value.option[this.option_field.key] ? value.option[this.option_field.key] : value.option.id;
-                        let sorted_option_value = value.option[this.option_field.value] ? value.option[this.option_field.value] : (value.option.title) ? value.option.title : (value.option.display_name) ? value.option.display_name : value.option.name;
-
-                        this.sorted_options.push({
-                            index: value.index,
-                            key: value.key,
-                            value: value.value,
-                            level: value.level,
-                            mark_new: false,
-                            option: value.option,
-                        });
-                    }
-                }
+                this.keepSelectedOptionInSortedOptions();
             }
+        },
+
+        // The selected option must stay in the list even if it is not listed in the options
+        keepSelectedOptionInSortedOptions() {
+            let selected_keys = this.multiple ? (Array.isArray(this.selected) ? this.selected : []) : [this.selected];
+
+            selected_keys.forEach(function (selected_key) {
+                if (selected_key === null || selected_key === undefined || selected_key === '') {
+                    return;
+                }
+
+                if (this.findOptionInList(this.sorted_options, selected_key)) {
+                    return;
+                }
+
+                let full_option = this.findOptionInList(this.full_options, selected_key);
+
+                if (! full_option) {
+                    return;
+                }
+
+                this.pushSortedOption({
+                    index: full_option.index,
+                    key: full_option.key,
+                    value: full_option.value,
+                    level: full_option.level,
+                    mark_new: false,
+                    option: full_option.option,
+                }, full_option.option);
+            }, this);
         },
 
         removeTag(event) {
@@ -935,12 +1133,12 @@ export default {
                 this.form.loading = false;
 
                 if (response.data.success) {
-                    this.sorted_options.push({
+                    this.pushSortedOption({
                         key: response.data.data[this.add_new.field.key].toString(),
-                        value: response.data.data[this.add_new.field.value],
+                        value: this.getOptionLabel(response.data.data),
                         level: response.data.data.parent_id ? 1 : 0,
                         option: response.data.data,
-                    });
+                    }, response.data.data);
 
                     this.new_options[response.data.data[this.add_new.field.key]] = response.data.data[this.add_new.field.value];
 
@@ -998,10 +1196,7 @@ export default {
                 setTimeout(() => {
                     this.loading = false;
 
-                    this.sorted_options = this.full_options.filter(item => {
-                        return item.value.toLowerCase()
-                            .indexOf(query.toLowerCase()) > -1;
-                    });
+                    this.sorted_options = this.filterOptionList(this.full_options, query);
                 }, 200);
             } else {
                 this.setSortedOptions();
@@ -1024,7 +1219,7 @@ export default {
                 this.selected = [];
 
                 selected.forEach(function (select, index) {
-                    if (Array.isArray(this.sorted_options) && this.sorted_options.find((option) => option.key == select)) {
+                    if (this.findOptionInList(this.sorted_options, select)) {
                         this.selected.push(select);
                     }
                 }, this);
@@ -1231,6 +1426,43 @@ export default {
 </script>
 
 <style>
+    .aka-select-prefix {
+        display: inline-flex;
+        align-items: center;
+        height: 100%;
+    }
+
+    .aka-select-prefix-dot {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 9999px;
+        margin-inline-start: 0.5rem;
+    }
+
+    html[dir="rtl"] .el-input__prefix {
+        right: 5px;
+        left: unset;
+        transition: all .3s;
+    }
+
+    html[dir="rtl"] .with-color-prefix .el-input__inner {
+        padding-left: unset !important;
+        padding-right: 2.25rem !important;
+    }
+
+    html[dir="rtl"] .with-color-prefix.with-icon-prefix .el-input__inner {
+        padding-left: unset !important;
+        padding-right: 2.8rem !important;
+    }
+
+    .with-color-prefix .el-input__inner {
+        padding-left: 2.25rem !important;
+    }
+
+    .with-color-prefix.with-icon-prefix .el-input__inner {
+        padding-left: 2.8rem !important;
+    }
+
     .el-select-dropdown__item.el-select__footer.bg-purple.sticky.bottom-0 {
         background-color: #fff !important;
     }

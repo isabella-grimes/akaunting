@@ -395,6 +395,28 @@ if (! function_exists('request_is_api')) {
     }
 }
 
+if (! function_exists('request_is_mcp')) {
+    function request_is_mcp(Request|null $request = null): bool
+    {
+        $r = $request ?: request();
+
+        return $r->is('mcp') || $r->is('mcp/*');
+    }
+}
+
+if (! function_exists('request_is_oauth_api')) {
+    /**
+     * Returns true when the current request is an API call authenticated
+     * via an OAuth Bearer token (as set by AuthenticateOnceWithDynamicApi middleware).
+     */
+    function request_is_oauth_api(Request|null $request = null): bool
+    {
+        $r = $request ?: request();
+
+        return request_is_api($r) && $r->attributes->get('auth_method') === 'oauth';
+    }
+}
+
 if (! function_exists('request_is_auth')) {
     function request_is_auth(Request|null $request = null): bool
     {
@@ -433,16 +455,27 @@ if (! function_exists('request_is_portal')) {
 if (! function_exists('calculation_to_quantity')) {
     function calculation_to_quantity($quantity)
     {
-        if (! preg_match('/^[0-9+\-x*\/().\s]+$/', $quantity)) {
+        $quantity = trim((string) $quantity);
+
+        if ($quantity === '') {
             throw new \InvalidArgumentException('Invalid mathematical expression.');
         }
 
-        $quantity = Str::replace('x', '*', $quantity);
+        if (! preg_match('/^[0-9,+\-x*\/().\s]+$/', $quantity)) {
+            throw new \InvalidArgumentException('Invalid mathematical expression.');
+        }
+
+        $quantity = str_replace(',', '.', $quantity);
+        $quantity = str_ireplace('x', '*', $quantity);
 
         try {
             $result = eval('return ' . $quantity . ';');
         } catch (\Throwable $e) {
             throw new \InvalidArgumentException('Error evaluating the expression: ' . $e->getMessage());
+        }
+
+        if (! is_numeric($result)) {
+            throw new \InvalidArgumentException('Invalid mathematical expression.');
         }
 
         return $result;

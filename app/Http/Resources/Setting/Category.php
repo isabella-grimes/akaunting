@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Setting;
 
+use App\Http\Resources\Auth\Owner;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class Category extends JsonResource
@@ -17,15 +18,17 @@ class Category extends JsonResource
         return [
             'id' => $this->id,
             'company_id' => $this->company_id,
+            'code' => $this->code,
             'name' => $this->name,
             'type' => $this->type,
             'color' => $this->color,
+            'description' => $this->description,
             'enabled' => $this->enabled,
             'parent_id' => $this->parent_id,
-            'created_from' => $this->created_from,
-            'created_by' => $this->created_by,
             'created_at' => $this->created_at ? $this->created_at->toIso8601String() : '',
             'updated_at' => $this->updated_at ? $this->updated_at->toIso8601String() : '',
+            'created_from' => $this->created_from,
+            'owner' => Owner::from($this->owner),
         ];
     }
 }

@@ -14,23 +14,56 @@ use App\Utilities\Modules;
 use App\Traits\Currencies;
 use App\Traits\Uploads;
 use App\Traits\Transactions;
+use App\Traits\ViewComponents;
 use Date;
 use Illuminate\Support\Str;
 
 class DocumentTransactions extends Controller
 {
-    use Currencies, Uploads, Transactions;
+    use Currencies, Uploads, Transactions, ViewComponents;
+
+    public const OBJECT_TYPE = 'document';
 
     /**
      * Instantiate a new controller instance.
+     *
+     * Security (CWE-862): this modal controller serves multiple document
+     * types (invoice, bill, and module-defined types). We intentionally do
+     * not call parent::__construct() here because the generic controller slug
+     * permission (modals-document-transactions) is not type-aware and can
+     * either over-block or over-grant access.
+     *
+     * Access is enforced per request in authorizeDocumentTransaction() using
+     * config('type.document.{type}.permission.*').
      */
     public function __construct()
     {
-        // Add CRUD permission check
-        //$this->middleware('permission:create-sales-invoices')->only('create', 'store', 'duplicate', 'import');
-        //$this->middleware('permission:read-sales-invoices')->only('index', 'show', 'edit', 'export');
-        //$this->middleware('permission:update-sales-invoices')->only('update', 'enable', 'disable');
-        //$this->middleware('permission:delete-sales-invoices')->only('destroy');
+        // Intentionally left blank; authorization is type-aware in methods.
+    }
+
+    /**
+     * Authorize access to a document's payment (transaction) based on the
+     * document type so that invoice permissions and bill permissions are
+     * enforced separately.
+     *
+     * @param  Document  $document
+     * @param  string    $action  read|create|update|delete
+     * @return void
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    protected function authorizeDocumentTransaction(Document $document, string $action): void
+    {
+        $permission = $this->getPermissionFromConfig($document->type, $action);
+
+        // Unknown/misconfigured document types may resolve to an invalid
+        // permission shape (e.g. "read-"); fail closed in that case.
+        if (empty($permission) || Str::endsWith($permission, '-')) {
+            abort(403, trans('errors.403'));
+        }
+
+        if (! user()->can($permission)) {
+            abort(403, trans('errors.403'));
+        }
     }
 
     /**
@@ -42,6 +75,8 @@ class DocumentTransactions extends Controller
      */
     public function create(Document $document)
     {
+        $this->authorizeDocumentTransaction($document, 'create');
+
         $document->load(['totals', 'transactions']);
 
         $currency = Currency::where('code', $document->currency_code)->first();
@@ -78,7 +113,6 @@ class DocumentTransactions extends Controller
             ],
             'payment' => [
                 'text' => trans('invoices.accept_payments'),
-                'class' => 'long-texts',
                 'before_text' => trans('general.get_paid_faster'),
                 'class' => 'px-6 py-1.5 text-xs bg-gray-200 hover:bg-purple-200 font-medium rounded-lg leading-6 long-texts',
                 'url' => route('apps.categories.show', [
@@ -127,6 +161,8 @@ class DocumentTransactions extends Controller
      */
     public function store(Document $document, Request $request)
     {
+        $this->authorizeDocumentTransaction($document, 'create');
+
         $response = $this->ajaxDispatch(new CreateBankingDocumentTransaction($document, $request));
 
         if ($response['success']) {
@@ -151,6 +187,8 @@ class DocumentTransactions extends Controller
      */
     public function edit(Document $document, Transaction $transaction)
     {
+        $this->authorizeDocumentTransaction($document, 'read');
+
         $document->load(['totals', 'transactions']);
 
         $currency = Currency::where('code', $document->currency_code)->first();
@@ -224,12 +262,15 @@ class DocumentTransactions extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  $item
-     * @param  $request
+     * @param  Document  $document
+     * @param  Transaction  $transaction
+     * @param  Request  $request
      * @return Response
      */
     public function update(Document $document, Transaction $transaction, Request $request)
     {
+        $this->authorizeDocumentTransaction($document, 'update');
+
         $response = $this->ajaxDispatch(new UpdateBankingDocumentTransaction($document, $transaction, $request));
 
         if ($response['success']) {
@@ -262,6 +303,8 @@ class DocumentTransactions extends Controller
      */
     public function destroy(Document $document, Transaction $transaction)
     {
+        $this->authorizeDocumentTransaction($document, 'delete');
+
         $response = $this->ajaxDispatch(new DeleteTransaction($transaction));
 
         $route = config('type.document.' . $document->type . '.route.prefix');
@@ -296,7 +339,7 @@ class DocumentTransactions extends Controller
             ];
 
             $quin = '?';
-    
+
             if (Str::contains($redirect, '?')) {
                 $quin = '&';
             }

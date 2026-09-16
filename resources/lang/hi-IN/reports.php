@@ -13,13 +13,17 @@ return [
     'discount_summary'              => 'छूट सारांश',
     'gross_profit'                  => 'कुल लाभ',
     'net_profit'                    => 'शुद्ध लाभ',
+    'net_profit_loss'               => 'शुद्ध लाभ (हानि)',
+    'total_income'                  => 'कुल आय',
+    'total_direct_cost'             => 'कुल बिक्री लागत',
+    'total_expense'                 => 'कुल व्यय',
     'total_expenses'                => 'कुल व्यय',
     'net'                           => 'शुद्ध',
     'income_expense'                => 'आय & व्यय',
     'pin'                           => 'अपनी रिपोर्ट पिन करें',
 
-    'income_expense_description'    => 'आय और व्यय रिपोर्ट के लिए विवरण',
-    'accounting_description'        => 'लेखांकन रिपोर्ट के लिए विवरण',
+    'income_expense_description'    => 'अपनी आय और व्यय का अवलोकन प्राप्त करें।',
+    'accounting_description'        => 'समझें कि आपका व्यवसाय कैसा कर रहा है।',
 
     'form_description' => [
         'general'                   => 'यहां आप रिपोर्ट की सामान्य जानकारी जैसे नाम, प्रकार, विवरण आदि दर्ज कर सकते हैं।',
@@ -35,6 +39,8 @@ return [
     'pin_text' => [
         'unpin_report'              => 'अपनी रिपोर्ट अनपिन करें',
         'pin_report'                => 'अपनी रिपोर्ट पिन करें',
-    ]
+    ],
+
+    'percentage_of_income'          => 'आय का % दिखाएँ',
 
 ];

@@ -22,7 +22,6 @@
                         <base-input
                             :error="form.errors.class[0]"
                             :label="text.type">
-                            
                             <el-select
                                 @change="form.errors.class[0] = ''"
                                 v-model="form.class" filterable
@@ -50,6 +49,17 @@
                         </base-input>
                     </div>
 
+                    <div class="sm:col-span-3" v-if="settings[form.class] && settings[form.class].limit !== undefined">
+                        <base-input
+                            type="number"
+                            not-required
+                            v-model="form.limit"
+                            :label="text.limit"
+                            :placeholder="placeholder.limit"
+                            inputGroupClasses="input-group-merge">
+                        </base-input>
+                    </div>
+
                     <div class="sm:col-span-3">
                         <base-input
                             not-required
@@ -66,7 +76,7 @@
 
         <template #card-footer>
             <div class="flex items-center justify-end">
-                <button type="button" class="flex items-center justify-center px-6 py-1.5 text-base rounded-lg mr-2 bg-transparent hover:bg-gray-300 disabled:bg-gray-200" @click="onCancel">
+                <button type="button" class="flex items-center justify-center px-6 py-1.5 text-base rounded-lg ltr:mr-2 rtl:ml-2 bg-transparent hover:bg-gray-300 disabled:bg-gray-200" @click="onCancel">
                     {{ text.cancel }}
                 </button>
 
@@ -133,6 +143,11 @@ export default {
             default: '',
             description: "Widget Width Field"
         },
+        limit: {
+            type: [Number, String],
+            default: '',
+            description: "Widget Limit Field"
+        },
         type: {
             type: String,
             default: '',
@@ -142,6 +157,11 @@ export default {
             type: Object,
             default: {},
             description: "Widget Get Classes"
+        },
+        settings: {
+            type: Object,
+            default: () => ({}),
+            description: "Map of widget class to its declared setting keys"
         },
         sort: {
             type: Number,
@@ -185,6 +205,7 @@ export default {
                 class: this.type,
                 name: this.name,
                 width: this.width,
+                limit: this.limit,
                 sort: this.sort,
                 dashboard_id: this.dashboard_id,
                 errors: {
@@ -248,7 +269,7 @@ export default {
         },
 
         onCancel() {
-            let documentClasses = document.body.classList;	
+            let documentClasses = document.body.classList;
 
             documentClasses.remove('overflow-y-hidden', 'overflow-overlay');
 
@@ -277,6 +298,15 @@ export default {
 
         'form.sort': function (val) {
             this.form.sort = Number(val);
+        },
+
+        // When creating a widget and the user picks a type, prefill the
+        // limit field with that widget's own default instead of leaving it
+        // blank (only if the user hasn't already typed a value).
+        'form.class': function (val) {
+            if ((this.form.limit === '' || this.form.limit === null) && this.settings[val] && this.settings[val].limit !== undefined) {
+                this.form.limit = this.settings[val].limit;
+            }
         }
     }
 }

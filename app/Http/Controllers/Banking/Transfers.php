@@ -17,6 +17,14 @@ use Illuminate\Support\Str;
 
 class Transfers extends Controller
 {
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->middleware('permission:read-banking-transfers')->only('printTransfer', 'pdfTransfer');
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -146,7 +154,7 @@ class Transfers extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  $id
+     * @param  Transfer  $transfer
      * @param  Request  $request
      *
      * @return Response
@@ -175,7 +183,7 @@ class Transfers extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  $id
+     * @param  Transfer  $transfer
      *
      * @return Response
      */

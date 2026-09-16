@@ -3,7 +3,7 @@
 return [
 
     'company' => [
-        'description'                   => 'Şirketin ismini, adresini, vergi numrasını vs. değiştirin',
+        'description'                   => 'Şirketin adını, adresini, vergi numarasını vs. değiştirin',
         'search_keywords'               => 'şirket, isim, e-posta, telefon, adres, ülke, vergi numarası, logo, şehir, kasaba, eyalet, il, posta kodu',
         'name'                          => 'Şirket İsmi',
         'email'                         => 'Şirket Emaili',
@@ -14,7 +14,7 @@ return [
 
         'form_description' => [
             'general'                   => 'Bu bilgiler oluşturduğunuz kayıtlarda görünür.',
-            'address'                   => 'Adres, kestiğiniz faturalarda, faturalarda ve diğer kayıtlarda kullanılacaktır.',
+            'address'                   => 'Adres, kestiğiniz faturalarda, satın alma faturalarında ve diğer kayıtlarda kullanılacaktır.',
         ],
     ],
 
@@ -53,7 +53,7 @@ return [
         'form_description' => [
             'fiscal'                    => 'Şirketinizin vergilendirme ve raporlama için kullandığı mali yıl dönemini ayarlayın.',
             'date'                      => 'Arayüzde her yerde görmek istediğiniz tarih biçimini seçin.',
-            'other'                     => 'Vergiler için yüzde işaretinin görüntüleneceği yeri seçin.  Faturalar ve faturalar için kalemlerde ve toplamda indirimleri etkinleştirebilirsiniz.',
+            'other'                     => 'Vergiler için yüzde işaretinin görüntüleneceği yeri seçin. Satış faturaları ve satın alma faturaları için kalemlerde ve toplamda indirimleri etkinleştirebilirsiniz.',
         ],
     ],
 
@@ -79,10 +79,14 @@ return [
         'subheading'                    => 'Altbaşlık',
         'due_receipt'                   => 'Teslim alındığında vadeli',
         'due_days'                      => ':days vadeli',
+        'due_custom'                    => 'Özel gün(ler)',
+        'due_custom_day'                => 'gün sonrasında',
         'choose_template'               => 'Fatura şablonu seçin',
         'default'                       => 'Varsayılan',
         'classic'                       => 'Klasik',
         'modern'                        => 'Modern',
+        'logo_size_width'               => 'Logo Genişliği',
+        'logo_size_height'              => 'Logo Yüksekliği',
         'hide' => [
             'item_name'                 => 'Ürün/Hizmet İsmini Gizle',
             'item_description'          => 'Ürün/Hizmet Açıklamasını Gizle',
@@ -95,8 +99,8 @@ return [
         'form_description' => [
             'general'                   => 'Fatura numaralarınızı ve ödeme koşullarınızı biçimlendirmek için varsayılanları ayarlayın.',
             'template'                  => 'Faturalarınız için aşağıdaki şablonlardan birini seçin.',
-            'default'                   => 'Faturalar için varsayılanları seçmek, başlıkları, alt başlıkları, notları ve alt bilgileri önceden dolduracaktır.  Böylece daha profesyonel görünmek için her seferinde faturaları düzenlemeniz gerekmez.',
-            'column'                    => 'Fatura sütunlarının nasıl adlandırılacağını özelleştirin.  Kalem açıklamalarını ve miktarlarını satırlarda gizlemek isterseniz buradan değiştirebilirsiniz.',
+            'default'                   => 'Faturalar için varsayılanları seçmek, başlıkları, alt başlıkları, notları ve alt bilgileri önceden dolduracaktır. Böylece daha profesyonel görünmek için her seferinde faturaları düzenlemeniz gerekmez.',
+            'column'                    => 'Fatura sütunlarının nasıl adlandırılacağını özelleştirin. Kalem açıklamalarını ve miktarlarını satırlarda gizlemek isterseniz buradan değiştirebilirsiniz.',
         ]
     ],
 
@@ -107,12 +111,14 @@ return [
     ],
 
     'default' => [
-        'description'                   => 'Şirketinizin varsayılan hesap, para birimi, dil vs',
+        'description'                   => 'Şirketinizin varsayılan hesabı, para birimi, dili vs.',
         'search_keywords'               => 'hesap, para birimi, dil, vergi, ödeme, yöntem, sayfalandırma',
         'list_limit'                    => 'Sayfa Başına Kayıt Sayısı',
         'use_gravatar'                  => 'Gravatar kullanın',
         'income_category'               => 'Gelir Kategorisi',
         'expense_category'              => 'Gider Kategorisi',
+        'address_format'                => 'Adres Biçimi',
+        'address_tags'                  => '<strong>Kullanılabilir Etiketler:</strong> :tags',
 
         'form_description' => [
             'general'                   => 'Kayıtları hızla oluşturmak için varsayılan hesabı, vergiyi ve ödeme yöntemini seçin.  Gösterge Tablosu ve Raporlar, varsayılan para birimi altında gösterilir.',
@@ -122,7 +128,7 @@ return [
     ],
 
     'email' => [
-        'description'                   => 'E-posta şablonları ve gönderim protokolünü değiştirin',
+        'description'                   => 'E-posta gönderim protokolünü değiştirin',
         'search_keywords'               => 'e-posta, gönder, protokol, smtp, host, parola',
         'protocol'                      => 'Protokol',
         'php'                           => 'PHP Mail',
@@ -137,7 +143,7 @@ return [
         ],
         'sendmail'                      => 'Sendmail',
         'sendmail_path'                 => 'Sendmail Dizini',
-        'log'                           => 'E-mailleri logla',
+        'log'                           => 'E-postaları günlüğe kaydet',
         'email_service'                 => 'E-posta Hizmeti',
         'email_templates'               => 'E-posta Şablonları',
 
@@ -162,7 +168,7 @@ return [
             'bill_remind_admin'         => 'Gider Faturası Hatırlatma Şablonu (yöneticiye gönderilen)',
             'bill_recur_admin'          => 'Tekrarlı Gider Faturası Şablonu (yöneticiye gönderilen)',
             'payment_received_customer' => 'Ödeme Alındı Şablonu (müşteriye gönderilen)',
-            'payment_made_vendor'       => 'Ödeme Yapıldı Şablonu (müşteriye gönderilen)',
+            'payment_made_vendor'       => 'Ödeme Yapıldı Şablonu (tedarikçiye gönderilen)',
         ],
     ],
 
@@ -170,9 +176,9 @@ return [
         'name'                          => 'Zamanlama',
         'description'                   => 'Otomatik hatırlatma ve tekrarlı işlemler için komut satırı',
         'search_keywords'               => 'otomatik, hatırlatma, yinelenen, cron, komut',
-        'send_invoice'                  => 'Gelir Faturası Hatırlat',
+        'send_invoice'                  => 'Satış Faturası Hatırlat',
         'invoice_days'                  => 'Vade Gününden Sonra Gönder',
-        'send_bill'                     => 'Gider Faturası Hatırlat',
+        'send_bill'                     => 'Satın Alma Faturası Hatırlat',
         'bill_days'                     => 'Vade Gününden Önce Gönder',
         'cron_command'                  => 'Cron Komutu',
         'command'                       => 'Komut',
@@ -187,7 +193,7 @@ return [
 
     'categories' => [
         'description'                   => 'Sınırsız gelir, gider ve ürün kategorisi oluşturun',
-        'search_keywords'               => 'kategori, gelir, gider, madde',
+        'search_keywords'               => 'kategori, gelir, gider, öğe',
     ],
 
     'currencies' => [

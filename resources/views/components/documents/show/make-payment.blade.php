@@ -44,7 +44,7 @@
 
         @stack('timeline_make_payment_body_detail_start')
 
-        <div class="text-xs mt-6" style="margin-left: 0 !important;">
+        <div class="text-xs mt-6" style="margin-inline-start: 0 !important;">
             <span class="font-medium">
                 {{ trans('bills.payment_made') }} :
             </span>
@@ -56,8 +56,9 @@
                     <div class="my-4">
                         <span>
                             <x-date :date="$transaction->paid_at" />
-                             - {!! trans('documents.transaction', [
+                             - {!! trans($text_document_transaction, [
                                  'amount' => '<span class="font-medium">' . money($transaction->amount, $transaction->currency_code) . '</span>',
+                                 'payment_method' => '<span class="font-medium">' . $transaction->payment_method_title . '</span>',
                                  'account' => '<span class="font-medium">' . $transaction->account->name . '</span>',
                              ]) !!}
                         </span>

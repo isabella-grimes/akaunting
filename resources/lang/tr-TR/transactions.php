@@ -6,12 +6,13 @@ return [
     'payment_made'          => 'Yapılan Ödeme',
     'paid_by'               => 'Ödeyen',
     'paid_to'               => 'Ödenen',
-    'related_invoice'       => 'İlgili Fatura',
-    'related_bill'          => 'İlgili Fatura',
+    'related_invoice'       => 'İlgili Satış Faturası',
+    'related_bill'          => 'İlgili Satın Alma Faturası',
     'recurring_income'      => 'Yinelenen Gelir',
     'recurring_expense'     => 'Yinelenen Gider',
     'included_tax'          => 'Dahil edilen vergi tutarı',
     'connected'             => 'Bağlantılı',
+    'connect_message'       => 'Bağlama işlemi sırasında bu :type için vergiler hesaplanmadı. Vergiler bağlanamaz.',
 
     'form_description' => [
         'general'           => 'Burada tarih, tutar, hesap, açıklama gibi işlemin genel bilgilerini girebilirsiniz.',
@@ -38,13 +39,20 @@ return [
         ],
 
         'expense' => [
-            'show_link'     => 'Satıcınız işlemi bu bağlantıdan görüntüleyebilir',
-            'copy_link'     => 'Bağlantıyı kopyalayın ve satıcınızla paylaşın.',
+            'show_link'     => 'Tedarikçiniz işlemi bu bağlantıdan görüntüleyebilir',
+            'copy_link'     => 'Bağlantıyı kopyalayın ve tedarikçinizle paylaşın.',
         ],
     ],
 
     'sticky' => [
-        'description'       => 'Müşterinizin ödemenizin web sürümünü nasıl göreceğini önizleyebilirsiniz.',
+        'description'       => 'Tedarikçinizin ödemenizin web sürümünü nasıl göreceğini önizliyorsunuz.',
+    ],
+
+    'messages' => [
+        'update_document_transaction' => 'Bu işlemi güncelleyebilirsiniz. Belgeye gitmeli ve orada düzenlemelisiniz.',
+        'create_document_transaction_error' => 'Bu uç nokta bir belgeye eklenemez. {{akaunting_url}}/documents/{{akaunting_document_id}}/transactions kullanın',
+        'update_document_transaction_error' => 'Bu uç nokta bir belgeye güncellenemez. {{akaunting_url}}/documents/{{akaunting_document_id}}/transactions/{akaunting_transaction_id} kullanın',
+        'delete_document_transaction_error' => 'Bu uç nokta bir belgeden silinemez. {{akaunting_url}}/documents/{{akaunting_document_id}}/transactions/{akaunting_transaction_id} kullanın',
     ],
 
 ];

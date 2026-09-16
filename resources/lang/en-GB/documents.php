@@ -7,6 +7,7 @@ return [
     'grand_total'               => 'Grand Total',
     'accept_payment_online'     => 'Accept Payments Online',
     'transaction'               => 'A payment for :amount was made using :account.',
+    'portal_transaction'        => 'A payment for :amount was made using :payment_method.',
     'billing'                   => 'Billing',
     'advanced'                  => 'Advanced',
 
@@ -65,7 +66,7 @@ return [
 
     'form_description' => [
         'companies'             => 'Change the address, logo, and other information for your company.',
-        'billing'               => 'Billing details appears in your document.',
+        'billing'               => 'Billing details appear in your document.',
         'advanced'              => 'Select the category, add or edit the footer, and add attachments to your :type.',
         'attachment'            => 'Download the files attached to this :type',
     ],
@@ -100,4 +101,11 @@ return [
     ],
 
     'empty_attachments'         => 'There are no files attached to this :type.',
+
+    'tax_rate' => [
+        'changed_title'         => 'Tax rates have changed since this record was created',
+        'changed_description'   => 'The amounts below use the rates that were charged at the time. Saving keeps them unchanged.',
+        'recalculate'           => 'Recalculate taxes using the current rates',
+        'charged_at'            => 'This amount uses the rate charged when the record was created (:rate). Tick the recalculate option above to update it.',
+    ],
 ];

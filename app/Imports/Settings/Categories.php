@@ -15,6 +15,8 @@ class Categories extends Import
     public $columns = [
         'name',
         'type',
+        'code',
+        'description',
     ];
 
     public function model(array $row)
@@ -30,10 +32,19 @@ class Categories extends Import
     {
         $row = parent::map($row);
 
-        $row['type'] = $this->getCategoryType($row['type']);
+        // Uploaded file may not include a type column; getCategoryType() falls
+        // back to the default type when the value is null/unknown.
+        $row['type'] = $this->getCategoryType($row['type'] ?? null);
         $row['parent_id'] = $this->getParentId($row) ?? null;
 
         return $row;
+    }
+
+    public function prepareRules(array $rules): array
+    {
+        $rules['code'] = 'nullable|string';
+
+        return $rules;
     }
 
     //This function is used in import classes. If the data in the row exists in the database, it is returned.

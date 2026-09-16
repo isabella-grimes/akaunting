@@ -13,16 +13,39 @@ class AccountBalance extends Widget
 
     public $report_class = 'App\Reports\IncomeExpense';
 
+    public $default_settings = [
+        'width' => '50',
+        'limit' => 5,
+    ];
+
     public function show()
     {
-        $accounts = Account::with('income_transactions', 'expense_transactions')->enabled()->take(5)->get()->map(function($account) {
-            $account->balance_formatted = money($account->balance, $account->currency_code);
+        $this->setData();
 
-            return $account;
-        })->all();
+        return $this->view('widgets.account_balance', $this->data);
+    }
 
-        return $this->view('widgets.account_balance', [
+    public function setData(): void
+    {
+        // Use withSum instead of eager-loading all transactions to avoid
+        // fetching millions of rows just to compute a per-account total.
+        $accounts = Account::withSum('income_transactions as income_sum', 'amount')
+            ->withSum('expense_transactions as expense_sum', 'amount')
+            ->enabled()
+            ->take((int) ($this->model?->settings?->limit ?? 5))
+            ->get()
+            ->map(function ($account) {
+                $balance = $account->opening_balance
+                    + ($account->income_sum ?? 0)
+                    - ($account->expense_sum ?? 0);
+
+                $account->balance_formatted = money($balance, $account->currency_code);
+
+                return $account;
+            })->all();
+
+        $this->data = [
             'accounts' => $accounts,
-        ]);
+        ];
     }
 }

@@ -29,6 +29,13 @@ class ProfitLoss extends Widget
 
     public function show()
     {
+        $this->setData();
+
+        return $this->view('widgets.bar_chart', $this->data);
+    }
+
+    public function setData(): void
+    {
         $this->setFilter();
 
         $chart = new Chart();
@@ -44,9 +51,9 @@ class ProfitLoss extends Widget
             ->setDataset(trans_choice('general.incomes', 1), 'column', array_values($this->getIncome()))
             ->setDataset(trans_choice('general.expenses', 1), 'column', array_values($this->getExpense()));
 
-        return $this->view('widgets.bar_chart', [
+        $this->data = [
             'chart' => $chart,
-        ]);
+        ];
     }
 
     public function setFilter(): void
@@ -89,7 +96,8 @@ class ProfitLoss extends Widget
         $totals = $this->calculateTotals($invoices, 'issued_at');
 
         // Transactions
-        $query = Transaction::with('recurring')->income()->isNotDocument()->isNotTransfer();
+        $query = Transaction::with('recurring')->income()->isNotDocument()->isNotTransfer()
+            ->select(['id', 'paid_at', 'amount', 'currency_code', 'currency_rate', 'parent_id']);
         $transactions = $this->applyFilters($query, ['date_field' => 'paid_at'])->get();
         Recurring::reflect($transactions, 'paid_at');
         $totals = $this->calculateTotals($transactions, 'paid_at', $totals);
@@ -106,7 +114,8 @@ class ProfitLoss extends Widget
         $totals = $this->calculateTotals($bills, 'issued_at');
 
         // Transactions
-        $query = Transaction::with('recurring')->expense()->isNotDocument()->isNotTransfer();
+        $query = Transaction::with('recurring')->expense()->isNotDocument()->isNotTransfer()
+            ->select(['id', 'paid_at', 'amount', 'currency_code', 'currency_rate', 'parent_id']);
         $transactions = $this->applyFilters($query, ['date_field' => 'paid_at'])->get();
         Recurring::reflect($transactions, 'paid_at');
         $totals = $this->calculateTotals($transactions, 'paid_at', $totals);

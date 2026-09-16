@@ -3,18 +3,22 @@
 return [
 
     'years'                         => 'Année|Années',
-    'date_range'                    => 'Intervalle de date',
+    'date_range'                    => 'Intervalle de dates',
     'preferences'                   => 'Préférence|Préférences',
-    'profit_loss'                   => 'Gains & pertes',
-    'income_summary'                => 'Sommaire des revenus',
-    'expense_summary'               => 'Sommaire des dépenses',
+    'profit_loss'                   => 'Bénéfices & pertes',
+    'income_summary'                => 'Résumé des revenus',
+    'expense_summary'               => 'Résumé des dépenses',
     'income_expense_summary'        => 'Revenus vs dépenses',
     'tax_summary'                   => 'Résumé des taxes',
-    'gross_profit'                  => 'Bénéfices brut',
-    'net_profit'                    => 'Bénéfices net',
-    'total_expenses'                => 'Total des dépenses',
+    'discount_summary'              => 'Résumé des remises',
+    'gross_profit'                  => 'Bénéfice brut',
+    'net_profit'                    => 'Bénéfice net',
+    'net_profit_loss'               => 'Bénéfice net (perte)',
+    'total_income'                  => 'Total des revenus',
+    'total_direct_cost'             => 'Total des coûts des ventes',
+    'total_expense'                 => 'Total des dépenses',
     'net'                           => 'NET',
-    'income_expense'                => 'Recettes & Dépenses',
+    'income_expense'                => 'Revenus & Dépenses',
     'pin'                           => 'Épingler votre rapport',
 
     'income_expense_description'    => 'Obtenez un aperçu de vos revenus et dépenses.',
@@ -34,6 +38,8 @@ return [
     'pin_text' => [
         'unpin_report'              => 'Désépingler votre rapport',
         'pin_report'                => 'Épingler votre rapport',
-    ]
+    ],
+
+    'percentage_of_income'          => 'Afficher le % des revenus',
 
 ];

@@ -56,7 +56,7 @@
                     </x-slot>
 
                     <x-slot name="body">
-                        <x-form.group.category :type="$type" />
+                        <x-form.group.category :type="$type" model="form.category_id" />
 
                         <x-form.group.contact :type="$contact_type" not-required />
 

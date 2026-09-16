@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Abstracts\Http\Controller;
 use App\Http\Requests\Auth\Login as Request;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 class Login extends Controller
@@ -37,14 +39,7 @@ class Login extends Controller
     {
         // Attempt to login
         if (! auth()->attempt($request->only('email', 'password'), $request->get('remember', false))) {
-            return response()->json([
-                'status' => null,
-                'success' => false,
-                'error' => true,
-                'message' => trans('auth.failed'),
-                'data' => null,
-                'redirect' => null,
-            ]);
+            return $this->respondLoginFailed();
         }
 
         // Get user object
@@ -54,14 +49,14 @@ class Login extends Controller
         if (! $user->enabled) {
             $this->logout();
 
-            return response()->json([
-                'status' => null,
-                'success' => false,
-                'error' => true,
-                'message' => trans('auth.disabled'),
-                'data' => null,
-                'redirect' => null,
+            // Security (CWE-204): avoid distinct error messages that would
+            // allow valid email enumeration. Log the real reason server-side
+            // for administrators/auditing without leaking it to the client.
+            Log::info('Login denied: account disabled', [
+                'email' => $request->email,
             ]);
+
+            return $this->respondLoginFailed();
         }
 
         $company = $user->withoutEvents(function () use ($user) {
@@ -72,14 +67,13 @@ class Login extends Controller
         if (! $company) {
             $this->logout();
 
-            return response()->json([
-                'status' => null,
-                'success' => false,
-                'error' => true,
-                'message' => trans('auth.error.no_company'),
-                'data' => null,
-                'redirect' => null,
+            // Security (CWE-204): do not expose "no company" message to the
+            // client; log it server-side instead.
+            Log::info('Login denied: no company assigned', [
+                'email' => $request->email,
             ]);
+
+            return $this->respondLoginFailed();
         }
 
         // Redirect to portal if is customer
@@ -101,8 +95,16 @@ class Login extends Controller
             ]);
         }
 
+        $route_name = $user->landing_page;
+
+        // Module routes are not registered on this guest request, and the landing page
+        // can point to a module, so the always available dashboard is used as a fallback.
+        if (! Route::has($route_name)) {
+            $route_name = 'dashboard';
+        }
+
         // Redirect to landing page if is user
-        $url = route($user->landing_page, ['company_id' => $company->id]);
+        $url = route($route_name, ['company_id' => $company->id]);
 
         return response()->json([
             'status' => null,
@@ -111,6 +113,26 @@ class Login extends Controller
             'message' => trans('auth.login_redirect'),
             'data' => null,
             'redirect' => redirect()->intended($url)->getTargetUrl(),
+        ]);
+    }
+
+    /**
+     * Build the generic failed-login JSON response.
+     *
+     * Security (CWE-204): every rejected login returns the same message and
+     * response shape so an unauthenticated attacker cannot distinguish
+     * "email does not exist" from "disabled" or "no company" and enumerate
+     * valid registered email addresses.
+     */
+    protected function respondLoginFailed()
+    {
+        return response()->json([
+            'status' => null,
+            'success' => false,
+            'error' => true,
+            'message' => trans('auth.failed'),
+            'data' => null,
+            'redirect' => null,
         ]);
     }
 

@@ -54,7 +54,7 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['daily'],
+            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
             'ignore_exceptions' => false,
         ],
 
@@ -148,6 +148,12 @@ return [
             'driver' => 'sentry',
             'level' => env('LOG_LEVEL', 'debug'),
             'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        'sentry_logs' => [
+            'driver' => 'sentry_logs',
+            'level' => env('LOG_LEVEL', 'debug'),
+            'ignore_exceptions' => true,
         ],
 
     ],

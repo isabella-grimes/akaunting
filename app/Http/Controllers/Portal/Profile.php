@@ -35,7 +35,7 @@ class Profile extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  User $user
+     * @param  $user_id
      * @param  Request $request
      *
      * @return Response
@@ -62,7 +62,10 @@ class Profile extends Controller
         }
 
         // Update customer
-        $user->contact->update($request->input());
+        $user->contact->update($request->only([
+            'name', 'email', 'tax_number', 'phone',
+            'address', 'city', 'state', 'zip_code', 'country'
+        ]));
 
         $message = trans('messages.success.updated', ['type' => trans('auth.profile')]);
 

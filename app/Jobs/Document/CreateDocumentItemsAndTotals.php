@@ -47,7 +47,8 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             'created_by' => $this->request['created_by'],
         ]);
 
-        $this->request['amount'] += $actual_total;
+        // Local total: seeding it from the request doubled the amount and leaked across bulk actions
+        $amount = $actual_total;
 
         $sort_order++;
 
@@ -106,7 +107,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                     'created_by' => $this->request['created_by'],
                 ]);
 
-                $this->request['amount'] += $tax['amount'];
+                $amount += $tax['amount'];
 
                 $sort_order++;
             }
@@ -131,17 +132,17 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                 DocumentTotal::create($total);
 
                 if (empty($total['operator']) || ($total['operator'] == 'addition')) {
-                    $this->request['amount'] += $total['amount'];
+                    $amount += $total['amount'];
                 } else {
                     // subtraction
-                    $this->request['amount'] -= $total['amount'];
+                    $amount -= $total['amount'];
                 }
 
                 $sort_order++;
             }
         }
 
-        $this->request['amount'] = round($this->request['amount'], $precision);
+        $this->request['amount'] = round($amount, $precision);
 
         // Add total
         DocumentTotal::create([
@@ -185,6 +186,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                 }
             }
 
+            $item['category_id'] = ! empty($item['category_id']) ? $item['category_id'] : $this->request['category_id'];
             $item['created_from'] = $this->request['created_from'];
             $item['created_by'] = $this->request['created_by'];
 
@@ -192,9 +194,10 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                 $new_item_request = [
                     'company_id' => $this->request['company_id'],
                     'name' => $item['name'],
-                    'description' => $item['description'],
+                    'description' => $item['description'] ?? null,
                     'sale_price' => $item['price'],
                     'purchase_price' => $item['price'],
+                    'category_id' => $item['category_id'],
                     'created_from' => $item['created_from'],
                     'created_by' => $item['created_by'],
                     'enabled' => '1',
@@ -211,7 +214,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
 
             $document_item = $this->dispatch(new CreateDocumentItem($this->document, $item));
 
-            # This line changed for discount calcualter issue
+            # This line changed for discount calculator issue
             //$item_amount = (double) $item['price'] * (double) $item['quantity'];
             $item_amount = $document_item->total;
 

@@ -132,8 +132,8 @@ class Installer
      *
      * @return void
      */
-	public static function createDefaultEnvFile()
-	{
+    public static function createDefaultEnvFile()
+    {
         // Rename file
         if (!is_file(base_path('.env')) && is_file(base_path('.env.example'))) {
             File::move(base_path('.env.example'), base_path('.env'));
@@ -143,7 +143,7 @@ class Installer
         static::updateEnv([
             'APP_KEY' => 'base64:'.base64_encode(random_bytes(32)),
         ]);
-	}
+    }
 
     public static function createDbTables($host, $port, $database, $username, $password, $prefix = null)
     {
@@ -155,7 +155,7 @@ class Installer
         static::saveDbVariables($host, $port, $database, $username, $password, $prefix);
 
         // Try to increase the maximum execution time
-        set_time_limit(300); // 5 minutes
+        set_time_limit(900); // 15 minutes, same as the update flow
 
         // Create tables
         Artisan::call('migrate', ['--force' => true]);
@@ -223,6 +223,17 @@ class Installer
         $db = Config::get('database.connections.' . $con);
 
         $db['host'] = $host;
+        $db['port'] = $port;
+
+        // Only mysql and mariadb split reads from writes, and there the split
+        // takes precedence over the host above. Adding these keys to a driver
+        // that has none would turn it into a read/write connection for no
+        // reason, so leave those connections alone.
+        if (isset($db['read'], $db['write'])) {
+            $db['read']['host'] = [$host];
+            $db['write']['host'] = [$host];
+        }
+
         $db['database'] = $database;
         $db['username'] = $username;
         $db['password'] = $password;

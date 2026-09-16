@@ -15,6 +15,7 @@ use App\Events\Report\TotalCalculated;
 use App\Exports\Common\Reports as Export;
 use App\Models\Common\Report as Model;
 use App\Models\Document\Document;
+use App\Models\Document\DocumentItem;
 use App\Models\Setting\Category;
 use App\Traits\Charts;
 use App\Traits\DateTime;
@@ -22,6 +23,7 @@ use App\Traits\SearchString;
 use App\Traits\Translations;
 use App\Utilities\Date;
 use App\Utilities\Export as ExportHelper;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 abstract class Report
@@ -185,13 +187,15 @@ abstract class Report
         }
 
         $options = !empty($this->chart[$table_key]) ? $this->chart[$table_key]['bar'] : $this->chart['bar'];
+        $dataset_name = $this->tables[$table_key] ?? trans_choice('general.totals', 1);
+        $dataset_values = $this->footer_totals[$table_key] ?? [];
 
         $chart->setType('bar')
             ->setOptions($options)
             ->setDefaultLocale($this->getDefaultLocaleOfChart())
             ->setLocales($this->getLocaleTranslationOfChart())
             ->setLabels(array_values($this->dates))
-            ->setDataset($this->tables[$table_key], 'column', array_values($this->footer_totals[$table_key]));
+            ->setDataset($dataset_name, 'column', array_values($dataset_values));
 
         return $chart;
     }
@@ -221,7 +225,7 @@ abstract class Report
         $total = array_sum($tmp_values);
         $total = !empty($total) ? $total : 1;
 
-        $group = $this->getSetting('group');
+        $group = $this->getGroup();
 
         $labels = $colors = $values = [];
 
@@ -265,7 +269,7 @@ abstract class Report
     {
         $data = [];
 
-        $group = Str::plural($this->group ?? $this->getSetting('group'));
+        $group = Str::plural($this->group ?? $this->getGroup());
 
         foreach ($this->tables as $table_key => $table_name) {
             if (! isset($this->row_values[$table_key])) {
@@ -456,7 +460,7 @@ abstract class Report
     {
         event(new TotalCalculating($this, $items, $date_field, $check_type, $table, $with_tax));
 
-        $group_field = $this->getSetting('group') . '_id';
+        $group_field = $this->getGroup() . '_id';
 
         foreach ($items as $item) {
             // Make groups extensible
@@ -498,7 +502,7 @@ abstract class Report
 
     public function setArithmeticTotals($items, $date_field, $operator = 'add', $table = 'default', $amount_field = 'amount')
     {
-        $group_field = $this->getSetting('group') . '_id';
+        $group_field = $this->getGroup() . '_id';
 
         $function = $operator . 'ArithmeticAmount';
 
@@ -581,19 +585,47 @@ abstract class Report
         return $model;
     }
 
+    public function flattenDocumentItems(Collection $documents): Collection
+    {
+        return $documents->flatMap(fn (Document $d) =>
+            $d->items->map(function (DocumentItem $di) use ($d) {
+                $proxy = clone $di;
+                $proxy->type = $d->type;
+                $proxy->document_number = $d->document_number;
+                $proxy->status = $d->status;
+                $proxy->issued_at = $d->issued_at;
+                $proxy->due_at = $d->due_at;
+                $proxy->currency_code = $d->currency_code;
+                $proxy->currency_rate = $d->currency_rate;
+                $proxy->amount = $di->total;
+                $proxy->contact_id = $d->contact_id;
+
+                return $proxy;
+            })
+        );
+    }
+
     public function getUrl($action = 'print')
     {
         $url = company_id() . '/common/reports/' . $this->model->id . '/' . $action;
 
-        $request = request()->all();
-        $parameters = '';
+        $parameters = array_filter(
+            request()->all(),
+            static function ($value, $key) {
+                // Skip Laravel internal params
+                if (in_array($key, ['_token', '_method'])) {
+                    return false;
+                }
 
-        foreach ($request as $key => $value) {
-            $parameters .= empty($parameters) ? ('?' . $key . '=' . $value) : ('&' . $key . '=' . $value);
-        }
+                return is_null($value) || is_scalar($value) || is_array($value);
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
 
-        if (!empty($parameters)) {
-            $url .= $parameters;
+        $query = http_build_query($parameters, '', '&', PHP_QUERY_RFC3986);
+
+        if (!empty($query)) {
+            $url .= '?' . $query;
         }
 
         return $url;
@@ -606,12 +638,17 @@ abstract class Report
 
     public function getBasis()
     {
-        return $this->getSearchStringValue('basis', $this->getSetting('basis'));
+        return $this->getSearchStringValue('basis', $this->getSetting('basis', $this->getDefaultFieldSelection($this->getBasisField())));
     }
 
     public function getPeriod()
     {
-        return $this->getSearchStringValue('period', $this->getSetting('period'));
+        return $this->getSearchStringValue('period', $this->getSetting('period', $this->getDefaultFieldSelection($this->getPeriodField())));
+    }
+
+    public function getGroup()
+    {
+        return $this->getSearchStringValue('group', $this->getSetting('group', $this->getDefaultFieldSelection($this->getGroupField())));
     }
 
     public function getDiscount()
@@ -643,6 +680,11 @@ abstract class Report
                 'required' => 'required',
             ],
         ];
+    }
+
+    protected function getDefaultFieldSelection(array $field, string $fallback = ''): string
+    {
+        return $field['selected'] ?? $fallback;
     }
 
     public function getPeriodField()

@@ -3,6 +3,8 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Events\Banking\TransferCreated;
+use App\Events\Banking\TransferCreating;
 use App\Interfaces\Job\HasOwner;
 use App\Interfaces\Job\HasSource;
 use App\Interfaces\Job\ShouldCreate;
@@ -20,6 +22,10 @@ class CreateTransfer extends Job implements HasOwner, HasSource, ShouldCreate
 
     public function handle(): Transfer
     {
+        $this->authorize();
+
+        event(new TransferCreating($this->request));
+
         \DB::transaction(function () {
             $expense_currency_code = $this->getCurrencyCode('from');
             $income_currency_code = $this->getCurrencyCode('to');
@@ -88,7 +94,20 @@ class CreateTransfer extends Job implements HasOwner, HasSource, ShouldCreate
             }
         });
 
+        event(new TransferCreated($this->model));
+
         return $this->model;
+    }
+
+    public function authorize(): void
+    {
+        foreach (['from', 'to'] as $type) {
+            $account_id = $this->request->get($type . '_account_id');
+
+            if (empty($account_id) || ! Account::find($account_id)) {
+                throw new \Exception(trans('messages.error.not_found', ['type' => trans_choice('general.accounts', 1)]));
+            }
+        }
     }
 
     protected function getCurrencyCode($type)

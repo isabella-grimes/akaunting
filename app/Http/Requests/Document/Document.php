@@ -53,8 +53,9 @@ class Document extends FormRequest
             'issued_at'             => 'required|date_format:Y-m-d H:i:s|before_or_equal:due_at',
             'due_at'                => 'required|date_format:Y-m-d H:i:s|after_or_equal:issued_at',
             'amount'                => 'required',
-            'items.*.name'          => 'required|string',
+            'items.*.name'          => 'required|string|max:255',
             'items.*.price'         => 'required|amount',
+            'items.*.tax_rates.*'   => 'nullable|numeric|min:0',
             'currency_code'         => 'required|string|currency',
             'currency_rate'         => 'required|gt:0',
             'contact_id'            => 'required|integer',
@@ -92,14 +93,29 @@ class Document extends FormRequest
         if ($items) {
             foreach ($items as $key => $item) {
                 $size = 10;
+                $quantityRule = ['required'];
 
-                $items[$key]['quantity'] = calculation_to_quantity($item['quantity']);
+                // A request does not always carry a quantity for every item, which the
+                // required rule below reports, so the key is not assumed to be there.
+                $quantity = $item['quantity'] ?? null;
 
-                if (Str::contains($item['quantity'], ['.', ','])) {
+                try {
+                    $items[$key]['quantity'] = calculation_to_quantity($quantity);
+                } catch (\InvalidArgumentException $e) {
+                    $quantityRule[] = function ($attribute, $value, $fail) {
+                        $fail(trans('validation.custom.invalid_quantity', [
+                            'attribute' => Str::lower(trans('invoices.quantity')),
+                        ]));
+                    };
+                }
+
+                if (Str::contains((string) $quantity, ['.', ','])) {
                     $size = 12;
                 }
 
-                $rules['items.' . $key . '.quantity'] = 'required|max:' . $size;
+                $quantityRule[] = 'max:' . $size;
+
+                $rules['items.' . $key . '.quantity'] = $quantityRule;
 
                 $this->items_quantity_size[$key] = $size;
             }

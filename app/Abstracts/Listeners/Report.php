@@ -5,29 +5,34 @@ namespace App\Abstracts\Listeners;
 use App\Models\Banking\Account;
 use App\Models\Common\Contact;
 use App\Models\Setting\Category;
+use App\Traits\Categories;
 use App\Traits\Contacts;
 use App\Traits\DateTime;
 use App\Traits\SearchString;
 
 abstract class Report
 {
-    use Contacts, DateTime, SearchString;
+    use Categories, Contacts, DateTime, SearchString;
 
     protected $classes = [];
 
     protected $events = [
-        'App\Events\Report\FilterShowing',
-        'App\Events\Report\FilterApplying',
-        'App\Events\Report\GroupShowing',
-        'App\Events\Report\GroupApplying',
-        'App\Events\Report\RowsShowing',
+        \App\Events\Report\FilterShowing::class,
+        \App\Events\Report\FilterApplying::class,
+        \App\Events\Report\GroupShowing::class,
+        \App\Events\Report\GroupApplying::class,
+        \App\Events\Report\RowsShowing::class,
     ];
+
+    // Prevent deprecated dynamic property warnings in PHP 8.2+ by explicitly declaring these properties
+    protected $class;
+    protected $group;
 
     public function skipThisClass($event)
     {
         $fire_event = $event;
 
-        $this->fireEvent('App\Events\Report\SkipClass', $fire_event);
+        $this->fireEvent(\App\Events\Report\SkipClass::class, $fire_event);
 
         return (empty($event->class) || !in_array(get_class($event->class), $this->classes));
     }
@@ -37,11 +42,11 @@ abstract class Report
         $fire_event = $event;
         $fire_group = $group;
 
-        $this->fireEvent('App\Events\Report\SkipRowsShowing', $fire_event, $fire_group);
+        $this->fireEvent(\App\Events\Report\SkipRowsShowing::class, $fire_event, $fire_group);
 
         return $this->skipThisClass($event)
-                || empty($event->class->model->settings->group)
-                || ($event->class->model->settings->group != $group);
+                || empty($event->class->getGroup())
+                || ($event->class->getGroup() != $group);
     }
 
     public function setDateFilter($event)
@@ -90,22 +95,24 @@ abstract class Report
 
     public function getItemCategories($limit = false)
     {
-        return $this->getCategories('item', $limit);
+        return $this->getCategories($this->getItemCategoryTypes(), $limit);
     }
 
     public function getIncomeCategories($limit = false)
     {
-        return $this->getCategories('income', $limit);
+        return $this->getCategories($this->getIncomeCategoryTypes(), $limit);
     }
 
     public function getExpenseCategories($limit = false)
     {
-        return $this->getCategories('expense', $limit);
+        return $this->getCategories($this->getExpenseCategoryTypes(), $limit);
     }
 
     public function getIncomeExpenseCategories($limit = false)
     {
-        return $this->getCategories(['income', 'expense'], $limit);
+        $types = array_merge($this->getIncomeCategoryTypes(), $this->getExpenseAndDirectCostCategoryTypes());
+
+        return $this->getCategories($types, $limit);
     }
 
     public function getCategories($types, $limit = false)
@@ -129,9 +136,13 @@ abstract class Report
         return $this->getContacts($this->getVendorTypes(), $limit);
     }
 
-    public function getContacts($types, $limit = false)
+    public function getContacts($types = null, $limit = false)
     {
-        $model = Contact::type($types)->orderBy('name');
+        if ($types) {
+            $model = Contact::type($types)->orderBy('name');
+        } else {
+            $model = Contact::orderBy('name');
+        }
 
         if ($limit !== false) {
             $model->take(setting('default.select_limit'));
@@ -196,17 +207,7 @@ abstract class Report
 
     public function applySearchStringFilter($event)
     {
-        $input = request('search', '');
-
-        // Remove basis as it's handled based on report itself
-        $search_basis = 'basis:' . $this->getSearchStringValue('basis', 'accrual', $input);
-        $input = str_replace($search_basis, '', $input);
-
-        // Remove period as it's handled based on report itself
-        $search_period = 'period:' . $this->getSearchStringValue('period', 'quarterly', $input);
-        $input = str_replace($search_period, '', $input);
-
-        $event->model->usingSearchString($input);
+        $event->model->usingSearchString();
     }
 
     public function applyAccountGroup($event)
@@ -275,14 +276,26 @@ abstract class Report
         }
     }
 
+    /**
+     * Preloaded parent => children map, used while building the category tree.
+     */
+    protected $preloaded_sub_categories = null;
+
     public function getCategoriesNodes($categories)
     {
         $nodes = [];
 
-        foreach ($categories as $id => $name) {
-            $category = Category::withSubCategory()->find($id);
+        // Load all categories once and walk the tree in memory (avoids the per-node N+1).
+        $all = Category::withSubCategory()->orderBy('name')->getWithoutChildren();
 
-            if (!is_null($category->parent_id)) {
+        $keyed = $all->keyBy('id');
+
+        $this->preloaded_sub_categories = $all->groupBy('parent_id');
+
+        foreach ($categories as $id => $name) {
+            $category = $keyed->get($id);
+
+            if (is_null($category) || ! is_null($category->parent_id)) {
                 unset($categories[$id]);
 
                 continue;
@@ -291,20 +304,25 @@ abstract class Report
             $nodes[$id] = $this->getSubCategories($category);
         }
 
+        $this->preloaded_sub_categories = null;
+
         return $nodes;
     }
 
     public function getSubCategories($category)
     {
-        if ($category->sub_categories->count() == 0) {
+        // Read the children from the preloaded map when getCategoriesNodes() filled it in.
+        $sub_categories_list = ! is_null($this->preloaded_sub_categories)
+            ? ($this->preloaded_sub_categories->get($category->id) ?? collect())
+            : $category->sub_categories;
+
+        if ($sub_categories_list->count() == 0) {
             return null;
         }
 
         $sub_categories = [];
 
-        foreach ($category->sub_categories as $sub_category) {
-            $sub_category->load('sub_categories');
-
+        foreach ($sub_categories_list as $sub_category) {
             $sub_categories[$sub_category->id] = $this->getSubCategories($sub_category);
         }
 
@@ -320,7 +338,7 @@ abstract class Report
         $period = $this->getSearchStringValue('period');
 
         if (empty($period)) {
-            $period = $event->class->getSetting('period');
+            $period = $event->class->getPeriod();
         }
 
         return $this->getPeriodicDate($date, $period, $event->class->year);

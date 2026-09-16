@@ -65,7 +65,8 @@ return [
         'firewall.session',
         //'firewall.sqli',
         'firewall.swear',
-        'firewall.xss',
+        //'firewall.xss',
+        \App\Http\Middleware\Firewall\Xss::class,
         //'App\Http\Middleware\YourCustomRule',
     ],
 
@@ -425,8 +426,8 @@ return [
                 // Evil starting attributes
                 '#(<[^>]+[\x00-\x20\"\'\/])(form|formaction|on\w*|style|xmlns|xlink:href)[^>]*>?#iUu',
 
-                // javascript:, livescript:, vbscript:, mocha: protocols
-                '!((java|live|vb)script|mocha|feed|data):(\w)*!iUu',
+                // javascript:, livescript:, vbscript:, mocha: protocols (literal)
+                '!((java|live|vb)script|mocha):|(feed|data):[^,;\s]*[,;]!iUu',
                 '#-moz-binding[\x00-\x20]*:#u',
 
                 // Unneeded tags

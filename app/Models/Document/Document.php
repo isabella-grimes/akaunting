@@ -188,6 +188,39 @@ class Document extends Model
         return $query->orderBy('issued_at', 'desc');
     }
 
+    public function documentNumberSortable(Builder $query, string $direction): Builder
+    {
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+        $table = $query->getQuery()->from;
+        $grammar = $query->getQuery()->getGrammar();
+        $documentNumber = $grammar->wrap($table . '.document_number');
+        $documentType = $grammar->wrap($table . '.type');
+        $driver = $query->getConnection()->getDriverName();
+        $substringFunction = $driver === 'mysql' ? 'SUBSTRING' : 'SUBSTR';
+        $integerType = $driver === 'mysql' ? 'UNSIGNED' : 'INTEGER';
+        $sortExpressions = [];
+
+        foreach (config('type.document', []) as $type => $typeConfig) {
+            $settingPrefix = $typeConfig['setting']['prefix'] ?? null;
+
+            if (! $settingPrefix) {
+                continue;
+            }
+
+            $prefixLength = mb_strlen((string) setting($settingPrefix . '.number_prefix', ''));
+
+            $sortExpressions[] = "WHEN '" . str_replace("'", "''", $type) . "' THEN CAST({$substringFunction}({$documentNumber}, " . ($prefixLength + 1) . ") AS {$integerType})";
+        }
+
+        $fallback = $driver === 'mysql'
+            ? "CAST(SUBSTRING_INDEX({$documentNumber}, '-', -1) AS UNSIGNED)"
+            : "CAST({$substringFunction}({$documentNumber}, 1) AS INTEGER)";
+
+        return $query->orderByRaw(
+            "CASE {$documentType} " . implode(' ', $sortExpressions) . " ELSE {$fallback} END {$direction}"
+        );
+    }
+
     public function scopeNumber(Builder $query, string $number): Builder
     {
         return $query->where('document_number', '=', $number);
@@ -373,7 +406,7 @@ class Document extends Model
     public function getPaidAttribute()
     {
         if (empty($this->amount)) {
-            return false;
+            return 0;
         }
 
         if ($this->status == 'paid' ) {
@@ -517,7 +550,34 @@ class Document extends Model
 
     public function getTemplatePathAttribute($value = null)
     {
-        return $value ?: 'sales.invoices.print_' . setting('invoice.template');
+        if ($value) {
+            // Allow safe view-path characters: alphanumeric, dots, underscores, colons (for module views like module::view.path), hyphens
+            if (! preg_match('/^[a-zA-Z0-9._:\-]+$/', $value)) {
+                $value = null;
+            }
+        }
+
+        if (! $value) {
+            // Sanitize the template identifier from settings to alphanumeric + underscores only
+            $template = preg_replace('/[^a-zA-Z0-9_]/', '', (string) setting('invoice.template')) ?: 'default';
+            $value = 'sales.invoices.print_' . $template;
+        }
+
+        /* The above validation ensures that $value is a safe view path. We can now check if the view exists.
+         * If the view doesn't exist, we can fall back to the default template.
+         *
+        if (! empty($value) && view()->exists($value)) {
+            return $value;
+        }
+
+        if (! empty($this->template) && view()->exists('sales.invoices.print_' . $this->template)) {
+            return 'sales.invoices.print_' . $this->template;
+        }
+
+        return 'sales.invoices.print_' . setting('invoice.template');
+        */
+
+        return $value;
     }
 
     public function getContactLocationAttribute()

@@ -80,6 +80,7 @@ fabric.properties
 /.idea
 /.history
 /.vscode
+/.claude
 /.vagrant
 Homestead.json
 Homestead.yaml
@@ -95,3 +96,5 @@ modules/*
 !modules/.gitkeep
 .laravelstatsrc
 .DS_Store
+.claude.json
+.mcp.json

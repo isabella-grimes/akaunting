@@ -45,12 +45,12 @@
                                 </div>
 
                                 @if (count($payment_methods) > 3)
-                                    <div class="swiper-button-next bg-body text-white flex items-center justify-center right-0 top-3">
-                                        <span class="material-icons text-purple text-4xl">chevron_right</span>
+                                    <div class="swiper-button-next bg-body text-white flex items-center justify-center ltr:right-0 rtl:left-0 top-3">
+                                        <span class="material-icons rtl:rotate-180 text-purple text-4xl">chevron_right</span>
                                     </div>
 
-                                    <div class="swiper-button-prev bg-body text-white flex items-center justify-center left-0 top-3">
-                                        <span class="material-icons text-purple text-4xl">chevron_left</span>
+                                    <div class="swiper-button-prev bg-body text-white flex items-center justify-center ltr:left-0 rtl:right-0 top-3">
+                                        <span class="material-icons rtl:rotate-180 text-purple text-4xl">chevron_left</span>
                                     </div>
                                 @endif
                             </div>
@@ -96,7 +96,7 @@
                         </x-slot>
 
                         <x-slot name="body" class="block" override="class">
-                            <div class="text-xs mt-1" style="margin-left: 0 !important;">
+                            <div class="text-xs mt-1" style="margin-inline-start: 0 !important;">
                                 <span class="font-medium">
                                     {{ trans('invoices.payments_received') }}:
                                 </span>
@@ -108,8 +108,9 @@
                                                 <x-link href="{{ route('portal.payments.show', $transaction->id) }}" class="text-black bg-no-repeat bg-0-2 bg-0-full hover:bg-full-2 bg-gradient-to-b from-transparent to-black transition-backgroundSize" override="class">
                                                     <x-date :date="$transaction->paid_at" />
                                                 </x-link>
-                                                - {!! trans('documents.transaction', [
+                                                - {!! trans($text_document_transaction, [
                                                     'amount' => '<span class="font-medium">' . money($transaction->amount, $transaction->currency_code) . '</span>',
+                                                    'payment_method' => '<span class="font-medium">' . $transaction->payment_method_title . '</span>',
                                                     'account' => '<span class="font-medium">' . $transaction->account->name . '</span>',
                                                 ]) !!}
                                             </span>

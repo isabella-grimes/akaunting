@@ -41,7 +41,7 @@
                         @endif
                     </div>
 
-                    <div class="lex items-end justify-between">
+                    <div class="flex items-end justify-between">
                         <p class="text-black text-sm">
                             {!! $notification->data['description'] !!}
                         </p>

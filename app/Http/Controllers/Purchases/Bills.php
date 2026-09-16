@@ -21,6 +21,22 @@ class Bills extends Controller
     public string $type = Document::BILL_TYPE;
 
     /**
+     * Instantiate a new controller instance.
+     *
+     * Security: explicitly gate document state-change methods behind
+     * update-purchases-bills permission. These methods are not in the
+     * canonical CRUD lists of assignPermissionsToController() and would
+     * otherwise run without any permission check.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->middleware('permission:read-purchases-bills')->only('printBill', 'pdfBill');
+        $this->middleware('permission:update-purchases-bills')->only('markReceived', 'markCancelled', 'restoreBill');
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return Response
@@ -29,7 +45,7 @@ class Bills extends Controller
     {
         $this->setActiveTabForDocuments();
 
-        $bills = Document::bill()->with('contact', 'items', 'item_taxes', 'last_history', 'transactions', 'totals', 'histories', 'media')->collect(['issued_at' => 'desc']);
+        $bills = Document::bill()->with('contact', 'items', 'items.taxes', 'item_taxes', 'last_history', 'transactions', 'totals', 'histories', 'media')->collect(['issued_at' => 'desc']);
 
         $total_bills = Document::bill()->count();
 
