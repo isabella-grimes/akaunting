@@ -6,11 +6,13 @@ use App\Abstracts\Job;
 use App\Events\Document\PaidAmountCalculated;
 use App\Events\Document\DocumentUpdated;
 use App\Events\Document\DocumentUpdating;
+use App\Exceptions\Job\NotAllowed;
 use App\Interfaces\Job\ShouldUpdate;
 use App\Jobs\Document\CreateDocumentItemsAndTotals;
 use App\Models\Document\Document;
 use App\Traits\Relationships;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class UpdateDocument extends Job implements ShouldUpdate
@@ -24,12 +26,25 @@ class UpdateDocument extends Job implements ShouldUpdate
         // An absent items key is a partial update; rebuilding from it would force delete the lines
         $has_items = $this->request->has('items');
 
+        if ($has_items) {
+            // Read afresh: a copy loaded earlier can be stale, e.g. read before the lines were created, and both
+            // the DocumentUpdating listeners and deleteRelationships() act on the loaded copy
+            $this->model->load(['items', 'item_taxes', 'totals']);
+
+            $this->preserveExistingTaxRates();
+        }
+
         // Derived from the lines, never taken from the caller
         $this->request['amount'] = $has_items ? 0 : $this->model->amount;
 
         // Disable this lines for global discount issue fixed ( https://github.com/akaunting/akaunting/issues/2797 )
         if ($this->request->has('discount')) {
             $this->request['discount_rate'] = $this->request['discount'];
+
+            // A discount without a type is worked out as an amount, so it is stored as one
+            if (! empty($this->request['discount']) && empty($this->request['discount_type'])) {
+                $this->request['discount_type'] = 'fixed';
+            }
         }
 
         event(new DocumentUpdating($this->model, $this->request));
@@ -37,7 +52,7 @@ class UpdateDocument extends Job implements ShouldUpdate
         // Track original contact_id to sync transactions if it changes
         $originalContactId = $this->model->contact_id;
 
-        \DB::transaction(function () use ($originalContactId, $has_items) {
+        DB::transaction(function () use ($originalContactId, $has_items) {
             // Upload attachment
             if ($this->request->file('attachment')) {
                 $this->deleteMediaModel($this->model, 'attachment', $this->request);
@@ -96,6 +111,58 @@ class UpdateDocument extends Job implements ShouldUpdate
     }
 
     /**
+     * Preserve stored line tax rates when the client does not submit tax_rates.
+     */
+    protected function preserveExistingTaxRates(): void
+    {
+        if ($this->request->boolean('recalculate_taxes')) {
+            return;
+        }
+
+        $items = (array) $this->request->input('items', []);
+
+        if (empty($items)) {
+            return;
+        }
+
+        $existingItems = $this->model->items()->with('taxes')->get()->values();
+
+        foreach ($items as $index => &$item) {
+            if (! empty($item['tax_rates']) || empty($item['tax_ids'])) {
+                continue;
+            }
+
+            $existingItem = $existingItems->get((int) $index);
+
+            if (! $existingItem) {
+                continue;
+            }
+
+            $existingRates = $existingItem->taxes->pluck('rate', 'tax_id')->all();
+
+            if (empty($existingRates)) {
+                continue;
+            }
+
+            $matchedRates = [];
+
+            foreach ((array) $item['tax_ids'] as $taxId) {
+                if (array_key_exists($taxId, $existingRates)) {
+                    $matchedRates[$taxId] = $existingRates[$taxId];
+                }
+            }
+
+            if (! empty($matchedRates)) {
+                $item['tax_rates'] = $matchedRates;
+            }
+        }
+
+        unset($item);
+
+        $this->request->merge(['items' => $items]);
+    }
+
+    /**
      * The attributes an update may write, without the ones that identify the document.
      */
     protected function getUpdatePayload(): array
@@ -118,12 +185,12 @@ class UpdateDocument extends Job implements ShouldUpdate
                 $type = Str::plural($this->model->type);
                 $message = trans('messages.warning.contact_change', ['type' => trans_choice("general.$type", 1)]);
 
-                throw new \Exception($message);
+                throw new NotAllowed($message);
             } else if ($this->model->transactions()->isReconciled()->exists()) {
                 $type = Str::plural($this->model->type);
                 $message = trans('messages.warning.reconciled_doc', ['type' => trans_choice("general.$type", 1)]);
 
-                throw new \Exception($message);
+                throw new NotAllowed($message);
             }
         }
     }

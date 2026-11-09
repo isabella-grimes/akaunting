@@ -5,6 +5,7 @@ namespace App\Jobs\Banking;
 use App\Abstracts\Job;
 use App\Events\Banking\TransferUpdated;
 use App\Events\Banking\TransferUpdating;
+use App\Exceptions\Job\NotFound;
 use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Banking\Account;
 use App\Models\Banking\Transaction;
@@ -98,11 +99,18 @@ class UpdateTransfer extends Job implements ShouldUpdate
 
     public function authorize(): void
     {
+        // Same check as in UpdateTransaction, for both transactions of the transfer
+        if ($this->model->expense_transaction?->reconciled || $this->model->income_transaction?->reconciled) {
+            $message = trans('messages.warning.reconciled_tran');
+
+            throw new \Exception($message);
+        }
+
         foreach (['from', 'to'] as $type) {
             $account_id = $this->request->get($type . '_account_id');
 
             if (empty($account_id) || ! Account::find($account_id)) {
-                throw new \Exception(trans('messages.error.not_found', ['type' => trans_choice('general.accounts', 1)]));
+                throw new NotFound(trans('messages.error.not_found', ['type' => trans_choice('general.accounts', 1)]));
             }
         }
     }

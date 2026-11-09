@@ -6,6 +6,7 @@ use Akaunting\Money\Currency as MoneyCurrency;
 use App\Abstracts\Job;
 use App\Events\Common\CompanyCreated;
 use App\Events\Common\CompanyCreating;
+use App\Exceptions\Job\NotAllowed;
 use App\Interfaces\Job\HasOwner;
 use App\Interfaces\Job\HasSource;
 use App\Interfaces\Job\ShouldCreate;
@@ -58,7 +59,7 @@ class CreateCompany extends Job implements HasOwner, HasSource, ShouldCreate
     {
         $limit = $this->getAnyActionLimitOfPlan();
         if (! $limit->action_status) {
-            throw new \Exception($limit->message);
+            throw new NotAllowed($limit->message);
         }
     }
 
@@ -92,7 +93,7 @@ class CreateCompany extends Job implements HasOwner, HasSource, ShouldCreate
     protected function updateSettings(): void
     {
         if ($this->request->file('logo')) {
-            $company_logo = $this->getMedia($this->request->file('logo'), 'settings', $this->model->id);
+            $company_logo = $this->getMedia($this->request->file('logo'), 'settings', $this->model->id, null, true, 'logo');
 
             if ($company_logo) {
                 $this->model->attachMedia($company_logo, 'company_logo');

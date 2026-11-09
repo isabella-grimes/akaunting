@@ -82,6 +82,7 @@ fabric.properties
 /.vscode
 /.claude
 /.vagrant
+/docs
 Homestead.json
 Homestead.yaml
 npm-debug.log
@@ -98,3 +99,8 @@ modules/*
 .DS_Store
 .claude.json
 .mcp.json
+.agents
+.claude
+.docs
+AGENTS.md
+CLAUDE.md

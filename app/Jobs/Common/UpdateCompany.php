@@ -5,6 +5,7 @@ namespace App\Jobs\Common;
 use App\Abstracts\Job;
 use App\Events\Common\CompanyUpdated;
 use App\Events\Common\CompanyUpdating;
+use App\Exceptions\Job\NotAllowed;
 use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Common\Company;
 use App\Models\Setting\Currency;
@@ -86,7 +87,7 @@ class UpdateCompany extends Job implements ShouldUpdate
             }
 
             if ($this->request->file('logo')) {
-                $company_logo = $this->getMedia($this->request->file('logo'), 'settings', $this->model->id);
+                $company_logo = $this->getMedia($this->request->file('logo'), 'settings', $this->model->id, null, true, 'logo');
 
                 if ($company_logo) {
                     $this->model->attachMedia($company_logo, 'company_logo');
@@ -118,14 +119,14 @@ class UpdateCompany extends Job implements ShouldUpdate
         if (($this->request->get('enabled', 1) == 0) && ($this->model->id == $this->current_company_id)) {
             $message = trans('companies.error.disable_active');
 
-            throw new \Exception($message);
+            throw new NotAllowed($message);
         }
 
         // Check if user can access company
         if ($this->isNotUserCompany($this->model->id)) {
             $message = trans('companies.error.not_user_company');
 
-            throw new \Exception($message);
+            throw new NotAllowed($message);
         }
     }
 
